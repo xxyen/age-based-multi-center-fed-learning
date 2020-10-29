@@ -58,9 +58,9 @@ class OutlierKmeansAlgor():
         copy_point_dis = copy.copy(point_dis)
         copy_point_dis.sort()
         # retrieve 90% closest elements 
-        idx = np.int(np.floor(num_points * self.num_part_of_closest_points))
+        idx = np.int(np.floor(self.num_points * self.num_part_of_closest_points))
         init_out_of_clus_distance = copy_point_dis[idx]
-        for i in range(num_points):
+        for i in range(self.num_points):
             if point_dis[i] > init_out_of_clus_distance:
                 self.big_E[i] = points[i]
             
@@ -69,7 +69,7 @@ class OutlierKmeansAlgor():
     def sovl_ol_problem(self, points):
         centers = self.k_means.cluster_centers_
         kmeans_labels = self.k_means.labels_
-        for i in range(num_points):
+        for i in range(self.num_points):
             x_center = centers[kmeans_labels[i]]
             temp_ei = np.array(points[i] - x_center)
             term = max(0,  1- self.threshold_dis / max(0.01, distance.euclidean(points[i], x_center)) )

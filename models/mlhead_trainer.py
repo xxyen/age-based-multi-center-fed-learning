@@ -186,7 +186,7 @@ class MlheadTrainer():
                 # cluster is in this form: a list of (num_clients, clients), client is a array of client model.             
                     c_wts = self.mlhead_cluster.get_init_point_data()
                     start_time = time.time()
-                    _, learned_cluster = self.mlhead_cluster.run_clustering(prev_score, c_wts)
+                    learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)
                     end_time = time.time() - start_time
                     self.kmeans_cost[k] = end_time
                     prev_score = len(c_wts)
@@ -237,7 +237,7 @@ class MlheadTrainer():
                 c_wts = get_tensor_from_localmodels(joined_clients,
                                                   c_wts,
                                                   self.mlhead_cluster.variable, self.clients[0].model)
-                _, learned_cluster = self.mlhead_cluster.run_clustering(prev_score, c_wts)# cwts is N (clients) x x_dimensions
+                learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)# cwts is N (clients) x x_dimensions
                 joined_clients.clear()
                 print("----- Multi-headed clustering performed -----")
                 prev_score = len(c_wts)

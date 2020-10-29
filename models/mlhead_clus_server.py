@@ -14,6 +14,10 @@ from mh_constants import VARIABLE_PARAMS, MODEL_PARAMS
 from mlhead_utilfuncs import input_fn
 from kmean_model import KmeanModel
 
+from outlkm_algor import OutlierKmeansAlgor
+
+CLUSTERING_SEED = 199
+
 class Mlhead_Clus_Server:
     
     def __init__(self, client_model, dataset, model, num_clusters, num_clients):
@@ -32,9 +36,11 @@ class Mlhead_Clus_Server:
             self._variable = self.get_model_variable(dataset, model)
             self._num_clusters = num_clusters
             self._learned = None
-            self._shuffledkeys = None
             self._clusterModel = KmeanModel(num_clients, self._x_dimensions, \
-                                                self._num_clusters, 99999)            
+                                                self._num_clusters, CLUSTERING_SEED) 
+            
+            self._outlkmalgor = OutlierKmeansAlgor(num_clients, self._x_dimensions, 
+                                                   num_clusters, max_iter=2, seed= CLUSTERING_SEED)
         """
         cluster_membership is a list of cluster dictionary,
         each contains {'member':list of clients, 
@@ -145,19 +151,15 @@ class Mlhead_Clus_Server:
     
     def get_init_point_data(self):
         #points = np.random.normal(loc=0.5, scale=0.5, size= (len(self.selected), self._x_dimensions)) 
-        points = np.random.uniform(-0.149, 0.149, (len(self.selected), self._x_dimensions))
+        points = np.random.uniform(-0.5, 0.5, (len(self.selected), self._x_dimensions))
         c_dict = {}
         for x, client in enumerate(self.selected):
             c_dict[client.id] = points[x]
-        self._shuffledkeys = list(c_dict.keys())
+
         return c_dict
 
     def run_clustering(self, prev_score, data):
-        random.shuffle(self._shuffledkeys)
-        features = list()
-        for x in self._shuffledkeys:
-            features.append(data[x])
-        labels = self._clusterModel.assign_clusters(np.array(features))
+        labels = self._clusterModel.assign_clusters([data[k] for k in data] )
         return None, self.eval_clustermembership(labels)
         
     def train_kmeans(self, prev_score, data):
@@ -210,18 +212,11 @@ class Mlhead_Clus_Server:
 
         for _, cluster in enumerate(self._cluster_membership):
             cluster["member"] = list()
-        
-        sort_clients = list()
-        # to sync the sorted clients with shuffle step
-        for i in self._shuffledkeys:
-            for client in self.selected_clients:
-                if client.id == i:
-                    sort_clients.append(client)
-                    break
+       
                     
         for x in range(len(labels)):
             grp_id = labels[x]            
-            self._cluster_membership[grp_id]["member"].append(sort_clients[x])
+            self._cluster_membership[grp_id]["member"].append(self.selected_clients[x])
         clus =  [ (len(cluster["member"]), cluster["member"]) for cl_id, cluster in enumerate(self._cluster_membership)]
         for c in clus:
             # I wanna to set first flag to true if any 
@@ -230,4 +225,9 @@ class Mlhead_Clus_Server:
                 self._clusterModel.first = True
                 break;
         return clus
-            
+    
+    def outlier_clustering(self, data):
+        if not self._outlkmalgor.finalized:
+            self._outlkmalgor.fit(np.array([data[k] for k in data]))
+        
+        return self.eval_clustermembership(self._outlkmalgor.labels)
