@@ -6,6 +6,14 @@ import csv
 from tensorflow.python import pywrap_tensorflow
 from utils.args import parse_args
 
+import pandas as pd
+
+CUSTOM_METRIC_PATH = 'metrics/history.json'
+
+rounds = []
+his_acc = []
+his_loss = []
+
 def input_fn(data):
     return tf.train.limit_epochs(
           tf.convert_to_tensor(data, dtype=tf.float32), num_epochs=1)   
@@ -72,4 +80,13 @@ def save_metric_csv(my_round, micro_acc, stack_list):
     with open(args.metric_file, 'a+') as tsvfile:
         writer = csv.writer(tsvfile, delimiter='\t', lineterminator='\n')
         writer.writerow([my_round, micro_acc,
-                     avg_center[0], avg_center[1], avg_center[2], avg_center[3]])     
+                     avg_center[0], avg_center[1], avg_center[2], avg_center[3]])  
+        
+def log_history(my_rounds, micro_acc):
+    rounds.append(my_rounds)
+    his_acc.append(micro_acc)
+    
+def save_historyfile():
+    df = pd.DataFrame({'round': rounds, 'micro-accuracy': his_acc})
+    df.to_json(CUSTOM_METRIC_PATH)
+    

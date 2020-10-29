@@ -20,7 +20,7 @@ SYS_METRICS_PATH = 'metrics/sys_metrics.csv'
 # below import fedmc necessary lib
 from mh_constants import VARIABLE_PARAMS
 from mlhead_clus_server import Mlhead_Clus_Server
-from mlhead_utilfuncs import get_tensor_from_localmodels,count_num_point_from, save_metric_csv
+from mlhead_utilfuncs import get_tensor_from_localmodels,count_num_point_from, log_history, save_historyfile
 
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from mlhead_client import Client
@@ -50,7 +50,8 @@ def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack
     print("acc list dimension: ", accuracy.ndim)
     micro_acc = np.mean(accuracy)
     print('micro (with weight) test_%s: %g' % (prefix, micro_acc) )
-    save_metric_csv(k+1, micro_acc, stack_list)
+    #save_metric_csv(k+1, micro_acc, stack_list)
+    log_history(k+1, micro_acc)
 
 def mlhead_print_stats(
     num_round, server, clients, num_samples, args, writer, stack_list, prepare_test, acc_array = None):
@@ -146,6 +147,13 @@ class MlheadTrainer():
         default_list = list()
         default_list.append(group)
         return default_list
+    
+    def clustering_function(points):
+        start_time = time.time()
+        learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)
+        end_time = time.time() - start_time
+        self.kmeans_cost[k] = end_time
+        return learned_cluster
         
     def setup_clients(self, dataset, model_dir, users, groups, train_data, test_data, model):
         """
@@ -186,10 +194,7 @@ class MlheadTrainer():
                 # their centroids is the reduction result, so we can't use them as the direct model parameters, 
                 # cluster is in this form: a list of (num_clients, clients), client is a array of client model.             
                     c_wts = self.mlhead_cluster.get_init_point_data()
-                    start_time = time.time()
-                    learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)
-                    end_time = time.time() - start_time
-                    self.kmeans_cost[k] = end_time
+                    learned_cluster = self.clustering_function(c_wts)
                     prev_score = len(c_wts)
 
 
@@ -238,14 +243,16 @@ class MlheadTrainer():
                 c_wts = get_tensor_from_localmodels(joined_clients,
                                                   c_wts,
                                                   self.mlhead_cluster.variable, self.clients[0].model)
-                learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)# cwts is N (clients) x x_dimensions
+                learned_cluster = self.clustering_function(c_wts) # cwts is N (clients) x x_dimensions
                 joined_clients.clear()
                 print("----- Multi-headed clustering performed -----")
                 prev_score = len(c_wts)
                 
 
     def finish(self, args):
-        # Save server model
+        # save history file
+        save_historyfile()
+        # Save server model        
         ckpt_path = os.path.join('checkpoints', args.dataset)
         if not os.path.exists(ckpt_path):
             os.makedirs(ckpt_path)
