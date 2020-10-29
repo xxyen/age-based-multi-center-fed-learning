@@ -1,4 +1,4 @@
-# multi-center-fed-learning: A multi-center federated learning approach
+# multi-center-fed-learning: A robust version of multi-center FML
 
 ## Resources
 Please technical details for this paper: [Multi-center Federated Learning](https://arxiv.org/abs/2005.01026)
