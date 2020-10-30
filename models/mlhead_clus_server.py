@@ -15,15 +15,15 @@ from mlhead_utilfuncs import input_fn
 from kmean_model import KmeanModel
 
 from outlkm_algor import OutlierKmeansAlgor
+from utils.args import parse_args
 
-CLUSTERING_SEED = 199
+CLUSTERING_SEED = 8433208
 
 class Mlhead_Clus_Server:
     
     def __init__(self, client_model, dataset, model, num_clusters, num_clients):
-        self.modeldir = "/scratch/tmpmodel"
-        if not os.path.exists(self.modeldir):
-            os.makedirs(self.modeldir)
+        args = parse_args()
+        
 #        if num_clusters < 2:
 #            raise Exception("Sorry, cluster number must be 2 or more")
         if num_clusters > 10:
@@ -40,7 +40,8 @@ class Mlhead_Clus_Server:
                                                 self._num_clusters, CLUSTERING_SEED) 
             
             self._outlkmalgor = OutlierKmeansAlgor(num_clients, self._x_dimensions, 
-                                                   num_clusters, max_iter=2, seed= CLUSTERING_SEED)
+                                                   num_clusters, max_iter=2, seed= CLUSTERING_SEED,
+                                                  threshold_dis = args.regul_term)
         """
         cluster_membership is a list of cluster dictionary,
         each contains {'member':list of clients, 
@@ -177,7 +178,7 @@ class Mlhead_Clus_Server:
 
         seed = np.random.randint(5667799881, size=1)[0]
         temp_name = next(tempfile._get_candidate_names())
-        temp_modeldir = os.path.join(self.modeldir, temp_name)
+        temp_modeldir = os.path.join("./", temp_name)
         if not os.path.exists(temp_modeldir): 
             os.makedirs(temp_modeldir)
         self._kmeans = tf.contrib.factorization.KMeansClustering(
@@ -231,3 +232,12 @@ class Mlhead_Clus_Server:
             self._outlkmalgor.fit(np.array([data[k] for k in data]))
         
         return self.eval_clustermembership(self._outlkmalgor.labels)
+    
+    def is_unbalanced_clus(cluster_indices):
+        lst_num_data = [c[0] for c in cluster_indices]
+        # check numpy array if any elements <= 1
+        num_count = np.where(lst_num_data <=1)
+        if len(num_count[0]) == 0:
+            return False
+        else:
+            return True

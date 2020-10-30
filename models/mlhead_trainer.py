@@ -148,11 +148,20 @@ class MlheadTrainer():
         default_list.append(group)
         return default_list
     
-    def clustering_function(points):
+    def clustering_function(self, points):
         start_time = time.time()
-        learned_cluster = self.mlhead_cluster.outlier_clustering(c_wts)
+        # comment one clustering to use another
+        # this is outlier ones
+        iter_stop = 0
+        learned_cluster = self.mlhead_cluster.outlier_clustering(points)
+        while (is_unbalanced_clus(learned_cluster)) and (iter_stop < 2):
+            iter_stop += 1
+            learned_cluster = self.mlhead_cluster.outlier_clustering(points)
+            
+        # this is simple ones
+        #learned_cluster = self.mlhead_cluster.run_clustering(points)
         end_time = time.time() - start_time
-        self.kmeans_cost[k] = end_time
+        self.kmeans_cost.append(end_time) 
         return learned_cluster
         
     def setup_clients(self, dataset, model_dir, users, groups, train_data, test_data, model):
@@ -177,7 +186,7 @@ class MlheadTrainer():
         # Simulate training
         print("----- Multi-center Federated Training -----")
         prev_score = None
-        self.kmeans_cost = np.zeros(self.num_rounds)
+        self.kmeans_cost = []
         for k in range(self.num_rounds):
             best_kept = None
             stack_list = []
