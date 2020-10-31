@@ -95,4 +95,10 @@ def parse_args():
                     help='we choose update our head models center every _ rounds',
                     type=int,
 			default=1)
+    
+    parser.add_argument('--regul-term', 
+                        type=float,
+                        default=10.,
+                        required=False)
+    
     return parser.parse_args()

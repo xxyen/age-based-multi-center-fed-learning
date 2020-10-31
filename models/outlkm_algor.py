@@ -7,7 +7,8 @@ class OutlierKmeansAlgor():
     
     def __init__(self, num_points, dimensions, num_clusters, max_iter, seed, init_type='random',
                 threshold_dis = 10., threshold_criterion = 0.01, 
-                 max_no_improvement = 3, num_part_of_closest_points = 0.9):
+                 max_no_improvement = 3, num_part_of_closest_points = 0.9,
+                percent_tosample = 0.25):
         self.num_points = num_points
         self.dimensions = dimensions
         self.num_clusters = num_clusters
@@ -18,8 +19,8 @@ class OutlierKmeansAlgor():
         self.threshold_criterion = threshold_criterion
         self.max_no_improvement = max_no_improvement
         self.num_part_of_closest_points = num_part_of_closest_points
+        self.percent_tosample = percent_tosample
         
-        self.big_E = np.zeros((num_points, dimensions))
         self.labels_ = None
         self.previous_centers = None
         self.k_means = None
@@ -27,6 +28,10 @@ class OutlierKmeansAlgor():
         self.finalized = False
         
     def fit(self, points):
+        all_points = copy.copy(points)
+        num_sample = np.int(np.floor((len(points) * self.percent_tosample)))
+        idx = np.random.randint(len(points), size = num_sample)
+        points = all_points[idx]
         if self.k_means is None:
             self.init_bige(points)
             self.k_means = KMeans(init=self.init_type, n_clusters = self.num_clusters,
@@ -34,7 +39,7 @@ class OutlierKmeansAlgor():
                                  max_iter = self.max_iter, random_state = self.random_state)
             
         
-        self.k_means.fit_predict(points - self.big_E)
+        self.k_means.fit(points - self.big_E)
         self.sovl_ol_problem(points)
         centers = self.k_means.cluster_centers_
         if self.previous_centers is not None:
@@ -46,6 +51,7 @@ class OutlierKmeansAlgor():
             else:
                 self.no_improvement = 0
         self.previous_centers = centers
+        self.k_means.predict(all_points)
         
         #check if we stop earlier, invoker will have to decide fit or not
         if self.no_improvement >= self.max_no_improvement:
@@ -53,14 +59,16 @@ class OutlierKmeansAlgor():
         
         
     def init_bige(self, points):
+        num_sample = len(points)
+        self.big_E = np.zeros((num_sample, self.dimensions))        
         mu = np.mean(points, axis=0)
         point_dis = np.apply_along_axis(lambda i: distance.euclidean(i, mu), 1, points)
         copy_point_dis = copy.copy(point_dis)
         copy_point_dis.sort()
         # retrieve 90% closest elements 
-        idx = np.int(np.floor(self.num_points * self.num_part_of_closest_points))
+        idx = np.int(np.floor(len(points) * self.num_part_of_closest_points))
         init_out_of_clus_distance = copy_point_dis[idx]
-        for i in range(self.num_points):
+        for i in range(len(points)):
             if point_dis[i] > init_out_of_clus_distance:
                 self.big_E[i] = points[i]
             
@@ -69,7 +77,7 @@ class OutlierKmeansAlgor():
     def sovl_ol_problem(self, points):
         centers = self.k_means.cluster_centers_
         kmeans_labels = self.k_means.labels_
-        for i in range(self.num_points):
+        for i in range(len(points)):
             x_center = centers[kmeans_labels[i]]
             temp_ei = np.array(points[i] - x_center)
             term = max(0,  1- self.threshold_dis / max(0.01, distance.euclidean(points[i], x_center)) )

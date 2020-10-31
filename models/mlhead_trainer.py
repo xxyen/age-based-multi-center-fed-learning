@@ -154,7 +154,7 @@ class MlheadTrainer():
         # this is outlier ones
         iter_stop = 0
         learned_cluster = self.mlhead_cluster.outlier_clustering(points)
-        while (is_unbalanced_clus(learned_cluster)) and (iter_stop < 2):
+        while (self.mlhead_cluster.is_unbalanced_clus(learned_cluster)) and (iter_stop < 2):
             iter_stop += 1
             learned_cluster = self.mlhead_cluster.outlier_clustering(points)
             

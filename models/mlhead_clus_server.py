@@ -233,8 +233,8 @@ class Mlhead_Clus_Server:
         
         return self.eval_clustermembership(self._outlkmalgor.labels)
     
-    def is_unbalanced_clus(cluster_indices):
-        lst_num_data = [c[0] for c in cluster_indices]
+    def is_unbalanced_clus(self, cluster_indices):
+        lst_num_data = np.array([c[0] for c in cluster_indices])
         # check numpy array if any elements <= 1
         num_count = np.where(lst_num_data <=1)
         if len(num_count[0]) == 0:
