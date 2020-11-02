@@ -20,6 +20,7 @@ class OutlierKmeansAlgor():
         self.max_no_improvement = max_no_improvement
         self.num_part_of_closest_points = num_part_of_closest_points
         self.percent_tosample = percent_tosample
+        self._lables = []
         
         self.labels_ = None
         self.previous_centers = None
@@ -51,7 +52,7 @@ class OutlierKmeansAlgor():
             else:
                 self.no_improvement = 0
         self.previous_centers = centers
-        self.k_means.predict(all_points)
+        self._lables = self.k_means.predict(all_points)
         
         #check if we stop earlier, invoker will have to decide fit or not
         if self.no_improvement >= self.max_no_improvement:
@@ -86,11 +87,11 @@ class OutlierKmeansAlgor():
     
     @property
     def labels(self):
-        return self.k_means.labels_
+        return self._lables
     
     @property
     def get_all_members(self):
-        return {i: np.where(self.k_means.labels_ == i)[0] for i in range(self.num_clusters)}        
+        return {i: np.where(self._lables == i)[0] for i in range(self.num_clusters)}        
     
     
         
