@@ -13,7 +13,6 @@ def batch_data(data, batch_size):
     data_y = data['y']
 
     # randomly shuffle data
-    np.random.seed(100)
     rng_state = np.random.get_state()
     np.random.shuffle(data_x)
     np.random.set_state(rng_state)

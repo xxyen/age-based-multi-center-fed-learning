@@ -4,6 +4,7 @@ import os, logging
 import sys
 import time
 import pickle
+import copy
 
 import random
 import tensorflow as tf
@@ -46,14 +47,15 @@ def get_sys_writer_function(args):
     return writer_fn
 
 
-def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack_list):
+def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack_list, client_list):
     print("acc list dimension: ", accuracy.ndim)
     micro_acc = np.mean(accuracy)
     print('micro (with weight) test_%s: %g' % (prefix, micro_acc) )
     #save_metric_csv(k+1, micro_acc, stack_list)
     macro_acc = np.mean([stack_list[cl] for cl in stack_list])
     print('macro (overall) test_%s: %g' % (prefix, macro_acc) )
-    log_history(k+1, micro_acc, macro_acc)
+    log_history(k+1, micro_acc, macro_acc, client_list)
+
 
 def mlhead_print_stats(
     num_round, server, clients, num_samples, args, writer, stack_list, prepare_test, acc_array = None):
@@ -203,6 +205,7 @@ class MlheadTrainer():
         for k in range(self.num_rounds):
             best_kept = None
             stack_list = {}
+            client_list = {}
             if prev_score is None: # This is the first iteration
                 if args.num_clusters == -1 :
                     write_file = False
@@ -238,7 +241,7 @@ class MlheadTrainer():
                 else:
                     active_clients = group[1]
                 
-
+                client_list[c_idx] = [c.id for c in active_clients ]
                 c_ids, c_groups, c_num_samples = server.get_clients_info(active_clients)
                 sys_metrics, updates = server.train_model(self.center_models[c_idx], num_epochs=args.num_epochs, batch_size=args.batch_size, minibatch=args.minibatch, clients = active_clients)
                 sys_fn = get_sys_writer_function(args)
@@ -258,7 +261,7 @@ class MlheadTrainer():
                                                    self.stat_writer_fn, stack_list, True, best_kept)
             # end iterate clusters
             mlhead_print_totloss(
-                k, self.eval_every, self.num_rounds, "accuracy",  best_kept, learned_cluster, stack_list)
+                k, self.eval_every, self.num_rounds, "accuracy",  best_kept, learned_cluster, stack_list, client_list)
 
             # Update the center point when k = local training * a mulitplier
             if not args.num_clusters == -1 and not k == (self.num_rounds -1) and (k + 1) % args.update_head_every == 0:
@@ -284,10 +287,10 @@ class MlheadTrainer():
 #             save_path = server.save_model(os.path.join(ckpt_path, '{}-K{}-C{}.ckpt'.format(args.model, args.num_clusters, i+1)))
 #         print('Model saved in path: %s' % save_path)
         print('{} rounds kmeans used {:.3f}'.format(self.num_rounds, np.average(self.kmeans_cost, weights=None)))
-#         for i, server in enumerate(self.head_server_stack):
-#             head_weights = server.model
-#             with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
-#                 pickle.dump(head_weights, f)
+        for i, server in enumerate(self.center_models):
+            head_weights = server
+            with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
+                pickle.dump(head_weights, f)
                 
 #         for s in self.head_server_stack:
 #             s.close_model()
