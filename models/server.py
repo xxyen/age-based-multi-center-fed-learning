@@ -6,9 +6,9 @@ from baseline_constants import BYTES_WRITTEN_KEY, BYTES_READ_KEY, LOCAL_COMPUTAT
 
 class Server:
     
-    def __init__(self, client_model):
-        self.client_model = client_model
-        self.model = client_model.get_params()
+    def __init__(self):
+#         self.client_model = client_model
+        self.model = []
         self.selected_clients = []
         self.updates = []
 
@@ -31,7 +31,7 @@ class Server:
 
         return [(c.num_train_samples, c.num_test_samples) for c in self.selected_clients]
     
-    def train_model(self, num_epochs=1, batch_size=10, minibatch=None, clients=None, write_file=False):
+    def train_model(self, single_center, num_epochs=1, batch_size=10, minibatch=None, clients=None, write_file=False):
         """Trains self.model on given clients.
         
         Trains model on self.selected_clients if clients=None;
@@ -58,7 +58,7 @@ class Server:
                    BYTES_READ_KEY: 0,
                    LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
         for c in clients:
-            c.model.set_params(self.model)
+            c.model.set_params(single_center)
             comp, num_samples, update = c.train(num_epochs, batch_size, minibatch, write_file)
 
             sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
@@ -125,6 +125,7 @@ class Server:
 
         self.model = averaged_soln
         self.updates = []
+        return self.model
     
     # A variant of averging using only 1/|number_clients|
     # as weight for aggregation
@@ -137,7 +138,8 @@ class Server:
         averaged_soln = [v / total_weight for v in base]
 
         self.model = averaged_soln
-        self.updates = []        
+        self.updates = []
+        return self.model
 
     def test_model(self, clients_to_test, exec_prepare_test, set_to_use='test'):
         """
@@ -176,10 +178,12 @@ class Server:
     
     def save_model(self, path):
         """Saves the server model on checkpoints/dataset/model.ckpt."""
+        return
         # Save server model
-        self.client_model.set_params(self.model)
-        model_sess =  self.client_model.sess
-        return self.client_model.saver.save(model_sess, path)
+#         self.client_model.set_params(self.model)
+#         model_sess =  self.client_model.sess
+#         return self.client_model.saver.save(model_sess, path)
 
     def close_model(self):
-        self.client_model.close()
+#         self.client_model.close()
+        return

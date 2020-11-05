@@ -8,7 +8,7 @@ class OutlierKmeansAlgor():
     def __init__(self, num_points, dimensions, num_clusters, max_iter, seed, init_type='random',
                 threshold_dis = 10., threshold_criterion = 0.01, 
                  max_no_improvement = 3, num_part_of_closest_points = 0.9,
-                percent_tosample = 0.25):
+                percent_tosample = 0.3):
         self.num_points = num_points
         self.dimensions = dimensions
         self.num_clusters = num_clusters

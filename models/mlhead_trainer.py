@@ -51,7 +51,9 @@ def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack
     micro_acc = np.mean(accuracy)
     print('micro (with weight) test_%s: %g' % (prefix, micro_acc) )
     #save_metric_csv(k+1, micro_acc, stack_list)
-    log_history(k+1, micro_acc)
+    macro_acc = np.mean([stack_list[cl] for cl in stack_list])
+    print('macro (overall) test_%s: %g' % (prefix, macro_acc) )
+    log_history(k+1, micro_acc, macro_acc)
 
 def mlhead_print_stats(
     num_round, server, clients, num_samples, args, writer, stack_list, prepare_test, acc_array = None):
@@ -60,11 +62,12 @@ def mlhead_print_stats(
     print_metrics(train_stat_metrics, num_samples, prefix='train_')
     writer(num_round, train_stat_metrics, 'train')
     test_stat_metrics = server.test_model(clients, exec_prepare_test=prepare_test, set_to_use='test')
-    stack_list.append(test_stat_metrics)
+    for k in test_stat_metrics:
+        stack_list[k] = test_stat_metrics[k][ACCURACY_KEY]
   
     test_acc =  print_metrics(test_stat_metrics, num_samples, prefix='test_')
     writer(num_round, test_stat_metrics, 'test')
-    # We also wants to evaluate a macro center (accuracy & loss)
+    # We also wants to evaluate a macro value (accuracy & loss)
     c = max(args.num_clusters, 1)
     if acc_array is not None:
         return np.append([acc_array], [test_acc])
@@ -129,19 +132,29 @@ class MlheadTrainer():
 
         # Create clients
         self.clients = self.setup_clients(args.dataset, args.model, users, groups, train_data, test_data, client_model)
-        client_ids, client_groups, client_num_samples = Server(client_model).get_clients_info(self.clients)
+        client_ids, client_groups, client_num_samples = Server().get_clients_info(self.clients)
         print('Clients in Total: %d' % len(self.clients))
         # Initial status
         print('--- Random Initialization ---')
         self.stat_writer_fn = get_stat_writer_function(client_ids, client_groups, client_num_samples, args)
         sys_writer_fn = get_sys_writer_function(args)
         
-        self.head_server_stack = [Server(client_model) for _ in range(max(args.num_clusters, 1))]
+#         self.head_server_stack = [Server(client_model) for _ in range(max(args.num_clusters, 1))]
         print("--- Do training and initilized clusting server---")
         self.mlhead_cluster = Mlhead_Clus_Server(client_model, args.dataset, args.model, args.num_clusters, len(self.clients))
         self.mlhead_cluster.select_clients(15896001, self.clients)
-        #print("Client models are saved at %s"  % self.mlhead_cluster.path )        
+        #print("Client models are saved at %s"  % self.mlhead_cluster.path ) 
+        self.center_models = [None] * args.num_clusters
+        self.center_init(args.num_clusters, client_model)
 
+    def center_init(self, num_clusters, client_model):
+        for i in range(num_clusters):
+            if os.path.exists("cnn-C{}.pb".format(i)):
+                with open("cnn-C{}.pb".format(i), "rb") as f:
+                    self.center_models[i] = pickle.load(f)
+            else:
+                self.center_models[i] = copy.deepcopy(client_model.get_params())
+                
     def default_cluster(self):
         group = len(self.clients), self.clients
         default_list = list()
@@ -189,7 +202,7 @@ class MlheadTrainer():
         self.kmeans_cost = []
         for k in range(self.num_rounds):
             best_kept = None
-            stack_list = []
+            stack_list = {}
             if prev_score is None: # This is the first iteration
                 if args.num_clusters == -1 :
                     write_file = False
@@ -213,7 +226,7 @@ class MlheadTrainer():
 
             joined_clients = dict()
             for c_idx, group in enumerate(learned_cluster):
-                server = self.head_server_stack[c_idx]
+                server = Server()
                 if group[0] <= 1:
                     print("Skip cluster %d as number of client not enough" % c_idx)
                     continue
@@ -227,7 +240,7 @@ class MlheadTrainer():
                 
 
                 c_ids, c_groups, c_num_samples = server.get_clients_info(active_clients)
-                sys_metrics, updates = server.train_model(num_epochs=args.num_epochs, batch_size=args.batch_size, minibatch=args.minibatch, clients = active_clients)
+                sys_metrics, updates = server.train_model(self.center_models[c_idx], num_epochs=args.num_epochs, batch_size=args.batch_size, minibatch=args.minibatch, clients = active_clients)
                 sys_fn = get_sys_writer_function(args)
                 sys_fn(k + 1, c_ids, sys_metrics, c_groups, c_num_samples)
                 
@@ -235,7 +248,7 @@ class MlheadTrainer():
                     joined_clients[c.id] = up[1]
                 # Thinking how to do a distance as weight averging
                 if args.weight_mode == "no_size":
-                    server.update_model_wmode()
+                    self.center_models[c_idx] = server.update_model_wmode()
                 else:
                     server.update_model_nowmode()
 
@@ -262,19 +275,19 @@ class MlheadTrainer():
         # save history file
         save_historyfile()
         # Save server model        
-        ckpt_path = os.path.join('checkpoints', args.dataset)
-        if not os.path.exists(ckpt_path):
-            os.makedirs(ckpt_path)
+#         ckpt_path = os.path.join('checkpoints', args.dataset)
+#         if not os.path.exists(ckpt_path):
+#             os.makedirs(ckpt_path)
 
-        for i, server in enumerate(self.head_server_stack):
-            # {}-K{}-C{}, K stands for number of clusters and C stands for ith center
-            save_path = server.save_model(os.path.join(ckpt_path, '{}-K{}-C{}.ckpt'.format(args.model, args.num_clusters, i+1)))
-        print('Model saved in path: %s' % save_path)
+#         for i, server in enumerate(self.head_server_stack):
+#             # {}-K{}-C{}, K stands for number of clusters and C stands for ith center
+#             save_path = server.save_model(os.path.join(ckpt_path, '{}-K{}-C{}.ckpt'.format(args.model, args.num_clusters, i+1)))
+#         print('Model saved in path: %s' % save_path)
         print('{} rounds kmeans used {:.3f}'.format(self.num_rounds, np.average(self.kmeans_cost, weights=None)))
-        for i, server in enumerate(self.head_server_stack):
-            head_weights = server.model
-            with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
-                pickle.dump(head_weights, f)
+#         for i, server in enumerate(self.head_server_stack):
+#             head_weights = server.model
+#             with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
+#                 pickle.dump(head_weights, f)
                 
-        for s in self.head_server_stack:
-            s.close_model()
+#         for s in self.head_server_stack:
+#             s.close_model()

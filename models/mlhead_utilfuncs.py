@@ -13,6 +13,7 @@ CUSTOM_METRIC_PATH = 'metrics/history.json'
 rounds = []
 his_acc = []
 his_loss = []
+his_mcoacc = []
 
 def input_fn(data):
     return tf.train.limit_epochs(
@@ -82,11 +83,12 @@ def save_metric_csv(my_round, micro_acc, stack_list):
         writer.writerow([my_round, micro_acc,
                      avg_center[0], avg_center[1], avg_center[2], avg_center[3]])  
         
-def log_history(my_rounds, micro_acc):
+def log_history(my_rounds, micro_acc, macro_acc):
     rounds.append(my_rounds)
     his_acc.append(micro_acc)
+    his_mcoacc.append(macro_acc)
     
 def save_historyfile():
-    df = pd.DataFrame({'round': rounds, 'micro-accuracy': his_acc})
+    df = pd.DataFrame({'round': rounds, 'micro': his_acc, 'macro': his_mcoacc})
     df.to_json(CUSTOM_METRIC_PATH)
     
