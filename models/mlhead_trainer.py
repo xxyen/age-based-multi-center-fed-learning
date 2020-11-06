@@ -287,10 +287,10 @@ class MlheadTrainer():
 #             save_path = server.save_model(os.path.join(ckpt_path, '{}-K{}-C{}.ckpt'.format(args.model, args.num_clusters, i+1)))
 #         print('Model saved in path: %s' % save_path)
         print('{} rounds kmeans used {:.3f}'.format(self.num_rounds, np.average(self.kmeans_cost, weights=None)))
-        for i, server in enumerate(self.center_models):
-            head_weights = server
-            with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
-                pickle.dump(head_weights, f)
+#         for i, server in enumerate(self.center_models):
+#             head_weights = server
+#             with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
+#                 pickle.dump(head_weights, f)
                 
 #         for s in self.head_server_stack:
 #             s.close_model()

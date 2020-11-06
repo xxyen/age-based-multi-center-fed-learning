@@ -57,8 +57,8 @@ def setup_clients_femnist(model=None, use_val_set=False):
 def setup_clients_celeba(model=None, use_val_set=False):
     dataset = 'celeba'
     eval_set = 'test' if not use_val_set else 'val'  
-    train_data_dir = os.path.join('data', dataset, 'data', 'train')
-    test_data_dir = os.path.join('data', dataset, 'data', eval_set)
+    train_data_dir = os.path.join('..', 'data', dataset, 'data', 'train')
+    test_data_dir = os.path.join('..', 'data', dataset, 'data', eval_set)
     
     train_file = os.path.join('data', dataset, 'data', 'train',"train_data.pb")
     test_file = os.path.join('data', dataset,  'data',eval_set,  '{}_data.pb'.format(eval_set))
