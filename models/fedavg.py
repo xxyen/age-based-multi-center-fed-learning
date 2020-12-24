@@ -118,5 +118,5 @@ class Fedavg_Trainer:
         client_model.close()        
     
     def ends(self):
-        # do nothing in this function for now
+        print("experiment of Fedavg finished.")
         return

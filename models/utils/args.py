@@ -2,6 +2,22 @@ import argparse
 
 from .constants import DATASETS, SIM_TIMES
 
+def parse_job_args():
+    parser = argparse.ArgumentParser()
+    
+    parser.add_argument('-dataset',
+                    help='name of dataset;',
+                    type=str,
+                    choices=DATASETS,
+                    required=True)
+    
+    parser.add_argument('-experiment',
+                    help='name of experiment to perform;',
+                    type=str,
+                    required=True)
+    
+    return parser.parse_args()
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
