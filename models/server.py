@@ -6,13 +6,14 @@ from baseline_constants import BYTES_WRITTEN_KEY, BYTES_READ_KEY, LOCAL_COMPUTAT
 
 class Server:
     
-    def __init__(self):
-#         self.client_model = client_model
-        self.model = []
+    def __init__(self, client_model):
+        self.client_model = client_model
+        if client_model is not None:
+            self.model = client_model.get_params()
         self.selected_clients = []
         self.updates = []
 
-    def select_clients(self, my_round, possible_clients, num_clients=20):
+    def select_clients(self, possible_clients, num_clients=20, my_round=100):
         """Selects num_clients clients randomly from possible_clients.
         
 
@@ -58,7 +59,10 @@ class Server:
                    BYTES_READ_KEY: 0,
                    LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
         for c in clients:
-            c.model.set_params(single_center)
+            if single_center is not None:
+                c.model.set_params(single_center)
+            else:
+                c.model.set_params(self.model)
             comp, num_samples, update = c.train(num_epochs, batch_size, minibatch, write_file)
 
             sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
@@ -141,7 +145,7 @@ class Server:
         self.updates = []
         return self.model
 
-    def test_model(self, clients_to_test, exec_prepare_test, set_to_use='test'):
+    def test_model(self, clients_to_test, set_to_use='test'):
         """
           Test model for different comparison of metrics
           and save them to report file for plotting
@@ -154,9 +158,6 @@ class Server:
 
         for client in clients_to_test:
             client.model.set_params(self.model)
-            if exec_prepare_test and not (set_to_use =='train'):
-                # Hardcoding now
-                client.prepare_test(10, 0.2)
             c_metrics = client.test(set_to_use)
             metrics[client.id] = c_metrics
         
