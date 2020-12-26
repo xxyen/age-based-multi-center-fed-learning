@@ -1,0 +1,13 @@
+--- 
+ JOB_ID: "federated-proximal-noniid"
+ API_VER: standard
+ PARAMS:
+   num-rounds: 20
+   epochs: 1
+   eval-every: 4
+   clients-per-round: 10
+   batch-size: 10
+   lr: 0.01
+   mu: 0.01
+ EXPORT:
+   history-file: ''
