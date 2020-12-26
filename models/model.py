@@ -22,7 +22,7 @@ class Model(ABC):
         self.graph = tf.Graph()
         with self.graph.as_default():
             tf.set_random_seed(123 + seed)
-            self.features, self.labels, self.train_op, self.eval_metric_ops, self.loss, self.pred_ops = self.create_model()
+            self.features, self.labels, self.train_op, self.eval_metric_ops, self.loss, self.pred_ops, self.prox_term = self.create_model()
             self.saver = tf.train.Saver()
         self.sess = tf.Session(graph=self.graph)
 
@@ -59,9 +59,9 @@ class Model(ABC):
         """Creates the model for the task.
 
         Returns:
-            A 5-tuple return value for the task
+            A 7-tuple return value for the task
         """
-        return None, None, None, None, None, None
+        return None, None, None, None, None, None, None
 
     def train(self, data, num_epochs=1, batch_size=10):
         """

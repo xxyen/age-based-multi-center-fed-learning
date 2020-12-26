@@ -21,10 +21,10 @@ MAIN_PARAMS = {
 
 MODEL_PARAMS = {
     'femnist.cnn': (0.0003, 62), # lr, num_classes
-    'femnist.cnn_prox': (0.0003, 62), # lr, num_classes
+    'femnist.cnn_prox': (0.0003, 0.01, 62), # lr, num_classes
     'shakespeare.stacked_lstm': (0.0003, 80, 80, 256), # lr, seq_len, num_classes, num_hidden
     'celeba.cnn': (0.1, 2), # lr, num_classes
-    'celeba.cnn_prox': (0.1, 2)
+    'celeba.cnn_prox': (0.1, 0.01, 2)
 }
 """dict: Model specific parameter specification"""
 

@@ -8,12 +8,14 @@ IMAGE_SIZE = 28
 
 
 class ClientModel(Model):
-    def __init__(self, seed, lr, num_classes, optimizer):
+    def __init__(self, seed, lr, mu, num_classes, optimizer):
         self.num_classes = num_classes
+        self.mu = mu
         super(ClientModel, self).__init__(seed, lr, optimizer)
 
     def create_model(self):
         """Model function for CNN."""
+        prox_term = tf.Variable(0.0)
         features = tf.placeholder(
             tf.float32, shape=[None, IMAGE_SIZE * IMAGE_SIZE], name='features')
         labels = tf.placeholder(tf.int64, shape=[None], name='labels')
@@ -47,10 +49,37 @@ class ClientModel(Model):
             global_step=tf.train.get_global_step())
         eval_metric_ops = tf.count_nonzero(tf.equal(labels, predictions["classes"]))
         pred_ops = tf.argmax(input=logits, axis=1)
-        return features, labels, train_op, eval_metric_ops, loss, pred_ops
+        return features, labels, train_op, eval_metric_ops, loss, pred_ops, prox_term
 
     def process_x(self, raw_x_batch):
         return np.array(raw_x_batch)
 
     def process_y(self, raw_y_batch):
         return np.array(raw_y_batch)
+
+    def run_epoch(self, data, batch_size):
+        ravel = lambda x,y: np.ravel(x) - np.ravel(y)
+        sqeuclidean = lambda x: np.inner(x, x)  
+        
+        for batched_x, batched_y in batch_data(data, batch_size):
+            
+            input_data = self.process_x(batched_x)
+            target_data = self.process_y(batched_y)
+            
+            local_w = self.get_params()
+            global_w = self.gl_ws
+            prox_term = 0.
+            for local_v, gl_v in zip(local_w, global_w):
+                prox_term += self.mu * sqeuclidean(ravel(local_v, gl_v))
+               
+            with self.graph.as_default():
+                self.sess.run(self.prox_term.assign(prox_term))
+                self.sess.run(self.train_op,
+                    feed_dict={
+                        self.features: input_data,
+                        self.labels: target_data
+                    })
+                self.sess.run(self.prox_term.assign(0.0))
+                
+    def fix_global_ws(self, ws):
+        self.gl_ws = ws    

@@ -11,7 +11,7 @@ class Client:
         self.train_data = train_data
         self.eval_data = eval_data
 
-    def train(self, num_epochs=1, batch_size=10, minibatch=None, write_file=False):
+    def train(self, num_epochs=1, batch_size=10, minibatch=None, apply_prox=False):
         """Trains on self.model using the client's train_data.
 
         Args:
@@ -25,6 +25,11 @@ class Client:
             update: set of weights
             update_size: number of bytes in update
         """
+        if apply_prox == True:
+            # assumption: when we are running fedprox algorithm,
+            # the model will have a method fix_global_ws
+            self.model.fix_global_ws(self.model.get_params())
+            
         if minibatch is None:
             data = self.train_data
             comp, update = self.model.train(data, num_epochs, batch_size)

@@ -5,22 +5,25 @@ import tensorflow as tf
 from PIL import Image
 
 from model import Model
-
+from utils.model_utils import batch_data
 
 IMAGE_SIZE = 84
 IMAGES_DIR = os.path.join('..', 'data', 'celeba', 'data', 'raw', 'img_align_celeba')
 
-
-class ClientModel(Model):
-    def __init__(self, seed, lr, num_classes, optimizer):
+# this class is only for fedprox, which 
+# requires a prox_term to compute loss
+class ClientProxModel(Model):
+    def __init__(self, seed, lr, mu, num_classes=2):
         self.num_classes = num_classes
-        super(ClientModel, self).__init__(seed, lr, optimizer)
+        self.mu = mu
+        super(ClientProxModel, self).__init__(seed, lr)
 
     def create_model(self):
+        prox_term = tf.Variable(0.0)
         input_ph = tf.placeholder(
             tf.float32, shape=(None, IMAGE_SIZE, IMAGE_SIZE, 3))
         out = input_ph
-        for _ in range(4):
+        for _ in range(2):
             out = tf.layers.conv2d(out, 32, 3, padding='same')
             out = tf.layers.batch_normalization(out, training=True)
             out = tf.layers.max_pooling2d(out, 2, 2, padding='same')
@@ -32,13 +35,12 @@ class ClientModel(Model):
             labels=label_ph,
             logits=logits)
         predictions = tf.argmax(logits, axis=-1)
-        grads_and_vars = self.optimizer.compute_gradients(loss)
-        minimize_op = self.optimizer.apply_gradients(
-            grads_and_vars, global_step=tf.train.get_global_step())
+        minimize_op = self.optimizer.minimize(
+            loss=loss, global_step=tf.train.get_global_step())
         eval_metric_ops = tf.count_nonzero(
             tf.equal(label_ph, tf.argmax(input=logits, axis=1)))
         pred_ops = tf.argmax(input=logits, axis=1)
-        return input_ph, label_ph, minimize_op, eval_metric_ops, tf.math.reduce_mean(loss), pred_ops
+        return input_ph, label_ph, minimize_op, eval_metric_ops, tf.math.reduce_mean(loss), pred_ops, prox_term
 
     def process_x(self, raw_x_batch):
         x_batch = [self._load_image(i) for i in raw_x_batch]
@@ -52,3 +54,30 @@ class ClientModel(Model):
         img = Image.open(os.path.join(IMAGES_DIR, img_name))
         img = img.resize((IMAGE_SIZE, IMAGE_SIZE)).convert('RGB')
         return np.array(img)
+    
+    def run_epoch(self, data, batch_size):
+        ravel = lambda x,y: np.ravel(x) - np.ravel(y)
+        sqeuclidean = lambda x: np.inner(x, x)  
+        
+        for batched_x, batched_y in batch_data(data, batch_size):
+            
+            input_data = self.process_x(batched_x)
+            target_data = self.process_y(batched_y)
+            
+            local_w = self.get_params()
+            global_w = self.gl_ws
+            prox_term = 0.
+            for local_v, gl_v in zip(local_w, global_w):
+                prox_term += self.mu * sqeuclidean(ravel(local_v, gl_v))
+               
+            with self.graph.as_default():
+                self.sess.run(self.prox_term.assign(prox_term))
+                self.sess.run(self.train_op,
+                    feed_dict={
+                        self.features: input_data,
+                        self.labels: target_data
+                    })
+                self.sess.run(self.prox_term.assign(0.0))
+                
+    def fix_global_ws(self, ws):
+        self.gl_ws = ws
