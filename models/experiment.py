@@ -10,6 +10,7 @@ from utils.args import parse_job_args
 
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
+from fedbayes import Fedbayes_Sing_Trainer
 
 def read_yamlconfig(args):
     yaml_file = os.path.join("..", "configs", args.experiment, "job.yaml")
@@ -43,8 +44,12 @@ def main():
         trainer = Fedprox_Trainer(users, groups, train_data, test_data)
         trainer.begins(config, args)
         trainer.ends()
-    elif args.expriment == 'fedcluster':
+    elif args.experiment == 'fedcluster':
         pass
+    elif args.experiment == 'fedbayes':
+        trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
+        trainer.begins(config, args)
+        trainer.ends()
     else:
         print("Applications not defined. Please send email to.")
         

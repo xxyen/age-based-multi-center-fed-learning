@@ -45,6 +45,18 @@ class Model(ABC):
         with self.graph.as_default():
             model_params = self.sess.run(tf.trainable_variables())
         return model_params
+    
+    def get_summary(self):
+        with self.graph.as_default():
+            all_vars = tf.trainable_variables()
+            model_summary = list(map(lambda x: x.op.name, all_vars))
+        return model_summary
+    
+    def get_meta_data(self):
+        params = self.get_params()
+        meta_data = list(map(lambda x: x.shape, params))
+        return meta_data
+            
 
     @property
     def optimizer(self):
