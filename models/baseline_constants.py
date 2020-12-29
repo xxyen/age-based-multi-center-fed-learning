@@ -35,3 +35,7 @@ LOCAL_COMPUTATIONS_KEY = 'local_computations'
 NUM_ROUND_KEY = 'round_number'
 NUM_SAMPLES_KEY = 'num_samples'
 CLIENT_ID_KEY = 'client_id'
+
+
+""" constant for tensorflow model shape """
+KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, NUM_OUTPUT_CHANNEL = 0, 1, 2, 3

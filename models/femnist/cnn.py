@@ -8,7 +8,7 @@ IMAGE_SIZE = 28
 
 
 class ClientModel(Model):
-    def __init__(self, seed, lr, num_classes, optimizer):
+    def __init__(self, seed, lr, num_classes, optimizer=None):
         self.num_classes = num_classes
         super(ClientModel, self).__init__(seed, lr)
 
