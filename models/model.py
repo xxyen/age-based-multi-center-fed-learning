@@ -6,7 +6,7 @@ import os
 import sys
 import tensorflow as tf
 
-from baseline_constants import ACCURACY_KEY
+from baseline_constants import ACCURACY_KEY, KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, NUM_OUTPUT_CHANNEL
 
 from utils.model_utils import batch_data
 from utils.tf_utils import graph_size
@@ -53,8 +53,23 @@ class Model(ABC):
         return model_summary
     
     def get_meta_data(self):
+        
+        def refined_shape(x):
+            if len(x.shape) > 1:
+                if len(x.shape) == 4:
+                    r_shape = (x.shape[NUM_OUTPUT_CHANNEL], x.shape[NUM_INPUT_CHANNEL],
+                              x.shape[KERNAL_WIDTH], x.shape[KERNEL_HEIGHT])
+                else:
+                    r_shape = (x.shape[1], x.shape[0])
+            else:
+                r_shape = x.shape
+            return r_shape
+        # IMPORTANT, need to format the shape as the 
+        # order used in the orignal paper
+        # which is (NUM_OUTPUT_CHANNEL, NUM_INPUT_CHANNEL, ker_width, ker_height)
+        # also the shape of dense need to transpose
         params = self.get_params()
-        meta_data = list(map(lambda x: x.shape, params))
+        meta_data = list(map(lambda x: refined_shape(x), params))
         return meta_data
             
 
