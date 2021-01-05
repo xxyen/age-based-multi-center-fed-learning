@@ -51,6 +51,6 @@ def main():
         trainer.begins(config, args)
         trainer.ends()
     else:
-        print("Applications not defined. Please send email to.")
+        print("Applications not defined. Please check configs directory if the name is right.")
         
 main()

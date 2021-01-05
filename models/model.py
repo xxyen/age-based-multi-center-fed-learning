@@ -21,7 +21,7 @@ class Model(ABC):
 
         self.graph = tf.Graph()
         with self.graph.as_default():
-            tf.set_random_seed(123 + seed)
+            tf.set_random_seed(seed)
             self.features, self.labels, self.train_op, self.eval_metric_ops, self.loss, self.pred_ops, self.prox_term = self.create_model()
             self.saver = tf.train.Saver()
         self.sess = tf.Session(graph=self.graph)
@@ -37,18 +37,18 @@ class Model(ABC):
 
     def set_params(self, model_params):
         with self.graph.as_default():
-            all_vars = tf.trainable_variables()
+            all_vars = tf.global_variables()
             for variable, value in zip(all_vars, model_params):
                 variable.load(value, self.sess)
 
     def get_params(self):
         with self.graph.as_default():
-            model_params = self.sess.run(tf.trainable_variables())
+            model_params = self.sess.run(tf.global_variables())
         return model_params
     
     def get_summary(self):
         with self.graph.as_default():
-            all_vars = tf.trainable_variables()
+            all_vars = tf.global_variables()
             model_summary = list(map(lambda x: x.op.name, all_vars))
         return model_summary
     

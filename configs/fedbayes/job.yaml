@@ -3,12 +3,12 @@
  API_VER: standard
  PARAMS:
    num-rounds: 20
-   epochs: 15
+   epochs: 10
    eval-every: 2
    clients-per-round: 10
    batch-size: 10
    lr: 0.1
-   seed: 15432080
+   seed: 15432021
    sigma: 1.0
    sigma0: 1.0
    gamma: 1.0

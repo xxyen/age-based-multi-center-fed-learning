@@ -17,7 +17,7 @@ from baseline_constants import KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, N
 
 from utils.matching.pfnm import layer_group_descent as pdm_multilayer_group_descent
 from utils.matching.cnn_pfnm import layerwise_sampler
-from utils.matching.cnn_permu import block_patching
+from utils.matching.cnn_retrain import reconstruct_weights, local_train, combine_network_after_matching
 
 def saved_cls_counts(clients, file):
     net_cls_counts = {}
@@ -76,28 +76,27 @@ def get_cnn_w(value):
     w = w.transpose() 
     return w
 
-def get_list_model_weights(models, model_summary):
+
     
-    def _weight_func(model):
-        all_layers = []
-        dense_varname, weight_varname = "dense", "kernel"
-        for var_name, value in zip(model_summary, model):
-            if var_name.startswith("conv"):
-                if var_name.endswith(weight_varname):
-                    all_layers.append(get_cnn_w(value))
-                else:
-                    all_layers.append(value)
-            elif var_name.startswith("batch"):
-                pass
-            elif var_name.startswith(dense_varname):
-                if var_name.endswith(weight_varname):
-                    all_layers.append(value.transpose())
-                else:
-                    all_layers.append(value)
-        return all_layers
-    
-    mapped = list(map(_weight_func, models)) 
-    return mapped
+def load_local_model_weight_func(model, model_summary):
+    all_layers = []
+    dense_varname, weight_varname = "dense", "kernel"
+    for var_name, value in zip(model_summary, model):
+        if var_name.startswith("conv"):
+            if var_name.endswith(weight_varname):
+                all_layers.append(get_cnn_w(value))
+            else:
+                all_layers.append(value)
+        elif var_name.startswith("batch"):
+            pass
+        elif var_name.startswith(dense_varname):
+            if var_name.endswith(weight_varname):
+                all_layers.append(value.transpose())
+            else:
+                all_layers.append(value)
+    return all_layers
+
+
 
 class Fedbayes_Sing_Trainer:
     
@@ -144,16 +143,10 @@ class Fedbayes_Sing_Trainer:
         return clients, server, client_model
     
     def begins(self, config, args):
-        clients, server, client_model = self.model_config(config, args.dataset, 'cnn') 
-        
-        
+        clients, server, client_model = self.model_config(config, args.dataset, 'cnn')        
         model_summary = client_model.get_summary()
         for v in model_summary:
             print(v)
-                
-#         nets = [client_model.get_params()]
-#         for n in nets[0]:
-#             print(n.shape)
             
         model_meta_data = client_model.get_meta_data()
         models = load_files() # a bit hardcode here
@@ -166,7 +159,7 @@ class Fedbayes_Sing_Trainer:
         gamma=config["gamma"]
         assignments_list = []
 
-        batch_weights = get_list_model_weights(models, model_summary)
+        batch_weights = [load_local_model_weight_func(x, model_summary) for x in models]
         for n in batch_weights[0]:
             print(n.shape)
         keeped_batch_weights = copy.deepcopy(batch_weights)
@@ -178,7 +171,7 @@ class Fedbayes_Sing_Trainer:
         matching_shapes = []
         fc_pos = None
         
-        fakelayer_index = 2
+        fakelayer_index = 1
         layer_hungarian_weights, assignment, L_next = layerwise_sampler(
              batch_weights=batch_weights, 
              layer_index=fakelayer_index,
@@ -193,45 +186,57 @@ class Fedbayes_Sing_Trainer:
              matching_shapes=matching_shapes,
              )
         assignments_list.append(assignment) 
-        print("Number of L of next layer is ", L_next)
-        type_of_patched_layer = model_summary[2 * (fakelayer_index + 1) - 2]
-        if type_of_patched_layer.startswith("conv"):
-            l_type = "conv"
-        elif type_of_patched_layer.startswith("dense"):
-            l_type = "fc"
+        print("Number of assignment in machted assignment is ", len(assignment))
 
-        type_of_this_layer = model_summary[2 * fakelayer_index - 2]        
-        if (type_of_this_layer == "dense/kernel"):
-            print("we found it and set fc_pos to this layer.")
-            fc_pos = fakelayer_index
-        else:
-            fc_pos = None
+        #combine_group_after_matching(batch_weights, layer_index, model_summary, matched_weight, L_next, assignment, out_estimator):
+        temp_network_weg = combine_network_after_matching(batch_weights, fakelayer_index, 
+                                                          model_summary, model_meta_data,
+                                                          layer_hungarian_weights, L_next, assignment,
+                                                         self.shape_func)
         
-#         matching_shapes.append(L_next)     
-        matching_shapes = [33, 64]
-        
-        first_worker = True
-        fc_outshape = tuple()
+            
+        old_data = client_model.get_params()
+        gl_weights = []
         for worker in range(J):
-            if fc_pos is None:
-                if l_type == "conv":
-                    patched_weight = block_patching(batch_weights[worker][2 * (fakelayer_index + 1) - 2], 
-                                        L_next, assignment[worker], 
-                                        fakelayer_index+1, model_meta_data,
-                                        fc_outshape, layer_type=l_type)
-                elif l_type == "fc":
-                    if first_worker:
-                        # we just need to compute this once for each of global updated
-                        first_worker = False
-                        fc_outshape = self.shape_func(matching_shapes)
-                    patched_weight = block_patching(batch_weights[worker][2 * (fakelayer_index + 1) - 2], 
-                                        L_next, assignment[worker], 
-                                        fakelayer_index+1, model_meta_data,
-                                        fc_outshape, layer_type=l_type)
+            j = worker
+            gl_weights.append(reconstruct_weights(temp_network_weg[j], assignment[j], model_summary, old_data, model_summary[0]))
+                    
+        models = local_train(clients[:40], gl_weights, 0, config)
+        batch_weights = models
+        
+        ## we handle the last layer carefully here ...
+        ## averaging the last layer
+        matched_weights = []
+        last_layer_weights_collector = []
 
-            elif layer_index >= fc_pos:
-                patched_weight = patch_weights(batch_weights[worker_index][2 * (fakelayer_index + 1) - 2].T, L_next, assignment[worker_index]).T
-    
+        for worker in range(J):
+            # firstly we combine last layer's weight and bias
+            bias_shape = batch_weights[worker][-1].shape
+            last_layer_bias = batch_weights[worker][-1].reshape((1, bias_shape[0]))
+            last_layer_weights = np.concatenate((batch_weights[worker][-2], last_layer_bias), axis=0)
+
+            # the directed normalization doesn't work well, let's try weighted averaging
+            last_layer_weights_collector.append(last_layer_weights)
+
+        last_layer_weights_collector = np.array(last_layer_weights_collector)
+
+        avg_last_layer_weight = np.zeros(last_layer_weights_collector[0].shape, dtype=np.float32)
+
+        for i in range(n_classes):
+            avg_weight_collector = np.zeros(last_layer_weights_collector[0][:, 0].shape, dtype=np.float32)
+            for j in range(J):
+                avg_weight_collector += averaging_weights[j][i]*last_layer_weights_collector[j][:, i]
+            avg_last_layer_weight[:, i] = avg_weight_collector
+
+        #avg_last_layer_weight = np.mean(last_layer_weights_collector, axis=0)
+        for i in range(len(model_summary)):
+            if i < (len(model_summary) - 2):
+                matched_weights.append(batch_weights[0][i])
+
+        matched_weights.append(avg_last_layer_weight[0:-1, :])
+        matched_weights.append(avg_last_layer_weight[-1, :])        
+        
+        
 #         num_rounds = config["num-rounds"]
 #         eval_every = config["eval-every"]
 #         epochs_per_round = config['epochs']
