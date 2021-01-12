@@ -34,6 +34,7 @@ class ClientProxModel(Model):
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
             labels=label_ph,
             logits=logits)
+        loss = loss + prox_term
         predictions = tf.argmax(logits, axis=-1)
         minimize_op = self.optimizer.minimize(
             loss=loss, global_step=tf.train.get_global_step())

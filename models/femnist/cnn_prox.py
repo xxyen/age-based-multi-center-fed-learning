@@ -2,16 +2,16 @@ import tensorflow as tf
 
 from model import Model
 import numpy as np
-
+from utils.model_utils import batch_data
 
 IMAGE_SIZE = 28
 
 
-class ClientModel(Model):
-    def __init__(self, seed, lr, mu, num_classes, optimizer):
+class ClientProxModel(Model):
+    def __init__(self, seed, lr, mu, num_classes=62):
         self.num_classes = num_classes
         self.mu = mu
-        super(ClientModel, self).__init__(seed, lr, optimizer)
+        super(ClientProxModel, self).__init__(seed, lr)
 
     def create_model(self):
         """Model function for CNN."""
@@ -35,18 +35,21 @@ class ClientModel(Model):
             activation=tf.nn.relu)
         pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
         pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-        dense = tf.layers.dense(inputs=pool2_flat, units=248, activation=tf.nn.relu)
+        dense = tf.layers.dense(inputs=pool2_flat, units=2048, activation=tf.nn.relu)
         logits = tf.layers.dense(inputs=dense, units=self.num_classes)
         predictions = {
           "classes": tf.argmax(input=logits, axis=1),
           "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
         }
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        grads_and_vars = self.optimizer.compute_gradients(loss)
+        loss = loss + prox_term
+        train_op = self.optimizer.minimize(
+            loss=loss, global_step=tf.train.get_global_step())
+#         grads_and_vars = self.optimizer.compute_gradients(loss)
         # TODO: Confirm that opt initialized once is ok?
-        train_op = self.optimizer.apply_gradients(
-            grads_and_vars,
-            global_step=tf.train.get_global_step())
+#         train_op = self.optimizer.apply_gradients(
+#             grads_and_vars,
+#             global_step=tf.train.get_global_step())
         eval_metric_ops = tf.count_nonzero(tf.equal(labels, predictions["classes"]))
         pred_ops = tf.argmax(input=logits, axis=1)
         return features, labels, train_op, eval_metric_ops, loss, pred_ops, prox_term
