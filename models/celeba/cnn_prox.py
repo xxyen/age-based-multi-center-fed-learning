@@ -57,7 +57,7 @@ class ClientProxModel(Model):
     
     def run_epoch(self, data, batch_size):
         ravel = lambda x,y: np.ravel(x) - np.ravel(y)
-        sqeuclidean = lambda x: np.inner(x, x)  
+        norm = lambda x: np.inner(x, x)  
         
         for batched_x, batched_y in batch_data(data, batch_size):
             
@@ -68,7 +68,7 @@ class ClientProxModel(Model):
             global_w = self.gl_ws
             prox_term = 0.
             for local_v, gl_v in zip(local_w, global_w):
-                prox_term += self.mu * sqeuclidean(ravel(local_v, gl_v))
+                prox_term += self.mu * norm(ravel(local_v, gl_v))
                
             with self.graph.as_default():
                 self.sess.run(self.prox_term.assign(prox_term))
