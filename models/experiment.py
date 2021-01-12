@@ -11,6 +11,7 @@ from utils.args import parse_job_args
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
 from fedbayes import Fedbayes_Sing_Trainer
+from modelsaver import Model_Saver
 
 def read_yamlconfig(args):
     yaml_file = os.path.join("..", "configs", args.experiment, "job.yaml")
@@ -50,6 +51,10 @@ def main():
         trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
         trainer.begins(config, args)
         trainer.ends()
+    elif args.experiment == 'modelsaver':
+        trainer = Model_Saver(users, groups, train_data, test_data)
+        trainer.begins(config, args)
+        trainer.ends()        
     else:
         print("Applications not defined. Please check configs directory if the name is right.")
         
