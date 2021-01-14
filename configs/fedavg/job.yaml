@@ -2,12 +2,12 @@
  JOB_ID: "federated-average-noniid"
  API_VER: standard
  PARAMS:
-   num-rounds: 20
+   num-rounds: 150
    epochs: 1
-   eval-every: 2
-   clients-per-round: 10
+   eval-every: 20
+   clients-per-round: 3
    batch-size: 10
    lr: 0.01
-   seed: 15432080
+   seed: 1543080
  EXPORT:
    history-file: ''
