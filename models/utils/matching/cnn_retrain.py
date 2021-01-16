@@ -52,7 +52,7 @@ def reconstruct_weights(weight, assignment, model_summary, old_data, layer_ident
     return res_weights
 
 def combine_network_after_matching(batch_weights, layer_index, model_summary, model_meta_data,
-                                   matched_weight, L_next, assignment, out_estimator):
+                                   matched_weight, L_next, assignment, matching_shapes, out_estimator):
     
     def apply_combine(weight, rng):
         return [weight[i] for i in rng]
@@ -75,7 +75,7 @@ def combine_network_after_matching(batch_weights, layer_index, model_summary, mo
 
     type_of_this_layer = model_summary[2 * layer_index - 2]        
     if (type_of_this_layer == "dense/kernel"):
-        fc_pos = fakelayer_index
+        fc_pos = layer_index
     else:
         fc_pos = None
 
