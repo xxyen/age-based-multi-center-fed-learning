@@ -68,12 +68,12 @@ def layerwise_sampler(batch_weights, layer_index, batch_frequencies, sigma_layer
         # our assumption is that this branch will consistently handle the last fc layers
         layer_type = model_layer_type[2 * layer_index - 2]
         prev_layer_type = model_layer_type[2 * layer_index - 2 - 2]
-        first_fc_identifier = (layertype == first_fc_name)
+        first_fc_identifier = (layer_type == first_fc_name)
         if first_fc_identifier:
-            weights_bias = [np.hstack((batch_weights[j][2 * layer_index - 2].T, 
+            weights_bias = [np.hstack((batch_weights[j][2 * layer_index - 2], 
                                         batch_weights[j][2 * layer_index - 1].reshape(-1, 1))) for j in range(J)]
         else:
-            weights_bias = [np.hstack((batch_weights[j][2 * layer_index - 2].T, 
+            weights_bias = [np.hstack((batch_weights[j][2 * layer_index - 2], 
                                         batch_weights[j][2 * layer_index - 1].reshape(-1, 1))) for j in range(J)]
 
 
