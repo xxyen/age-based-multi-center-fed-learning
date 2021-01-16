@@ -9,13 +9,14 @@ def block_patching(w_j, L_next, assignment_j_c, layer_index, model_meta_data,
     In CNN, weights patching needs to be handled block-wisely
     We handle all conv layers and the first fc layer connected with the output of conv layers here
     """
-    print('--'*15)
-    print("ori w_j shape: {}".format(w_j.shape))
+    #print('--'*15)
+    #print("ori w_j shape: {}".format(w_j.shape))
+    #print("input layer_type: {}".format(layer_type))
     #print("L_next: {}".format(L_next))
     #print("assignment_j_c: {}, length of assignment: {}".format(assignment_j_c, len(assignment_j_c)))
     #print("correspoding meta data: {}".format(model_meta_data[2 * layer_index - 2]))
     #print("layer index: {}".format(layer_index))
-    print('--'*15)
+    #print('--'*15)
     if assignment_j_c is None:
         return w_j
 
@@ -55,6 +56,6 @@ def block_patching(w_j, L_next, assignment_j_c, layer_index, model_meta_data,
         assignment_j_c.sort()
         rematch_localblocks = [np.arange(i* fc_outshape[1]**2, (i+1)* fc_outshape[1]**2) for i in assignment_j_c]
         w = list(np.array(rematch_localblocks).flatten())
-        ne_w = new_w_j[:, w]
+        new_w = new_w_j[:, w]
     
     return new_w

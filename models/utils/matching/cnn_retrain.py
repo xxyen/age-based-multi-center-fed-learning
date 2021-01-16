@@ -5,6 +5,14 @@ import tensorflow as tf
 from baseline_constants import KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, NUM_OUTPUT_CHANNEL
 from utils.matching.cnn_permu import block_patching
 
+def patch_weights(w_j, L_next, assignment_j_c):
+    if assignment_j_c is None:
+        return w_j
+    new_w_j = np.zeros((w_j.shape[0], L_next))
+    new_w_j[:, assignment_j_c] = w_j
+    return new_w_j
+
+
 def reconstruct_weights(weight, assignment, model_summary, old_data, layer_identifier=None, slice_dim="filter"):
     res_weights = []
     conv_varname, dense_varname, weight_varname = "conv", "dense", "kernel"
@@ -15,14 +23,18 @@ def reconstruct_weights(weight, assignment, model_summary, old_data, layer_ident
             if var_name.endswith(weight_varname):
                 w = value.transpose()
                 if var_name != layer_identifier:
-                    w = w.reshape(o.shape)                    
+                    w = w.reshape(o.shape)
+#                     #w = w.reshape(o.shape)                    
             else:
                 w = value
         elif var_name.startswith("batch"):
             w = np.ones(o.shape)
         elif var_name.startswith(dense_varname):
             if var_name.endswith(weight_varname):
-                w = value.transpose()
+                if var_name != layer_identifier: 
+                    w = value.transpose()
+                else:
+                    w = value
             else:
                 w = value
         res_weights.append(w)       
@@ -35,11 +47,13 @@ def reconstruct_weights(weight, assignment, model_summary, old_data, layer_ident
     # global neurons used by this client
     w_index = model_summary.index(layer_identifier)
     old = old_data[w_index]
-    if layer_identifier.startswith(conv_varname):
+    if layer_identifier.startswith(conv_varname) and \
+        layer_identifier.endswith(weight_varname):
+#         print("Branch executing or not?", w_index)
         if slice_dim == "filter":
             _maw = res_weights[w_index][:, assignment]
             width, height = old.shape[KERNAL_WIDTH], old.shape[KERNEL_HEIGHT]
-            num_in_chn, num_out_chn = old.shape[NUM_INPUT_CHANNEL], len(assignment)
+            num_in_chn, num_out_chn = old.shape[NUM_INPUT_CHANNEL], old.shape[NUM_OUTPUT_CHANNEL]
             _maw = _maw.reshape(width, height, num_in_chn, num_out_chn)            
             res_weights[w_index] = _maw
             res_weights[w_index + 1] = res_weights[w_index + 1][assignment]
@@ -105,8 +119,7 @@ def combine_network_after_matching(batch_weights, layer_index, model_summary, mo
         temp_whole_network[j].append(patched_weight)
 
     remain_whole_network = list(map(apply_remain, batch_weights))
-    plus = lambda x, y: x + y
-    all_combined = list(map(plus, temp_whole_network, remain_whole_network))    
+    all_combined = [bef + after for bef, after in zip(temp_whole_network, remain_whole_network) ]    
     return all_combined
         
 

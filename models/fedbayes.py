@@ -15,7 +15,7 @@ from model import ServerModel
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from baseline_constants import KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, NUM_OUTPUT_CHANNEL
 
-from utils.matching.pfnm import layer_group_descent as pdm_multilayer_group_descent
+#from utils.matching.pfnm import layer_group_descent as pdm_multilayer_group_descent
 from utils.matching.cnn_pfnm import layerwise_sampler
 from utils.matching.cnn_retrain import reconstruct_weights, local_train, combine_network_after_matching
 
@@ -96,16 +96,36 @@ def load_local_model_weight_func(model, model_summary):
                 all_layers.append(value)
     return all_layers
 
-
-
 class Fedbayes_Sing_Trainer:
     
     def __init__(self, users, groups, train_data, test_data):
+        # matching requires num of classes to be set during 
+        # model_config stage, or it can cause program failure
         self.users = users
         self.train_data = train_data
         self.test_data = test_data
-        self.num_classes = 0 # matching requires this num to be set during model_config func
+        self.num_classes = 0 
         self.shape_func = None
+        
+    def avg_cls_weights(self, dataset, num_classes):
+        all_class_freq = load_counts(dataset)
+        J = len(all_class_freq)
+
+        averaging_weights = np.zeros((J, num_classes), dtype=np.float32)
+        for i in range(num_classes):
+            total_num_counts = 0
+            worker_class_counts = [0] * J
+            for j in range(J):
+                w = list(all_class_freq.keys())[j]
+                if i in all_class_freq[w].keys():
+                    total_num_counts += all_class_freq[w][i]
+                    worker_class_counts[j] = all_class_freq[w][i]
+                else:
+                    total_num_counts += 0
+                    worker_class_counts[j] = 0
+            averaging_weights[:, i] = worker_class_counts / total_num_counts
+
+        return averaging_weights, all_class_freq
         
     def model_config(self, config, dataset, my_model):   
         shared_model = my_model
@@ -152,57 +172,63 @@ class Fedbayes_Sing_Trainer:
         models = load_files() # a bit hardcode here
         it = 10
         
-        cls_freqs = load_counts(args.dataset)
         n_classes = self.num_classes
+        averaging_weights, cls_freqs = self.avg_cls_weights(args.dataset, self.num_classes)
         sigma=config["sigma"]
         sigma0=config["sigma0"]
         gamma=config["gamma"]
         assignments_list = []
 
-        batch_weights = [load_local_model_weight_func(x, model_summary) for x in models]
-        for n in batch_weights[0]:
-            print(n.shape)
+        apply_by_j = lambda j: load_local_model_weight_func(j, model_summary)
+        batch_weights = list(map(apply_by_j, models))
         keeped_batch_weights = copy.deepcopy(batch_weights)
 
         batch_freqs = pdm_prepare_freq(cls_freqs, self.num_classes)
-
+        # param names explained:
+        # C is the number of layers for model structure, no counting bias
+        # J is the number of users (workers)
         C = int(len(batch_weights[0]) / 2)
         J = len(models)
         matching_shapes = []
         fc_pos = None
         
-        fakelayer_index = 1
-        layer_hungarian_weights, assignment, L_next = layerwise_sampler(
-             batch_weights=batch_weights, 
-             layer_index=fakelayer_index,
-             sigma0_layers=sigma0, 
-             sigma_layers=sigma, 
-             batch_frequencies=batch_freqs,
-             it=it, 
-             gamma_layers=gamma, 
-             model_meta_data=model_meta_data,
-             model_layer_type= model_summary,
-             n_layers= C,
-             matching_shapes=matching_shapes,
-             )
-        assignments_list.append(assignment) 
-        print("Number of assignment in machted assignment is ", len(assignment))
+        for cur_l in range(1, C):
+            layer_hungarian_weights, assignment, L_next = layerwise_sampler(
+                 batch_weights=batch_weights, 
+                 layer_index=cur_l,
+                 sigma0_layers=sigma0, 
+                 sigma_layers=sigma, 
+                 batch_frequencies=batch_freqs,
+                 it=it, 
+                 gamma_layers=gamma, 
+                 model_meta_data=model_meta_data,
+                 model_layer_type= model_summary,
+                 n_layers= C,
+                 matching_shapes=matching_shapes,
+                 )
+            assignments_list.append(assignment) 
+            print("Number of assignment: {}, L_next: {}, matched_weight shape: {} ".format(
+                len(assignment), L_next, layer_hungarian_weights[0].shape) )
 
-        #combine_group_after_matching(batch_weights, layer_index, model_summary, matched_weight, L_next, assignment, out_estimator):
-        temp_network_weg = combine_network_after_matching(batch_weights, fakelayer_index, 
-                                                          model_summary, model_meta_data,
-                                                          layer_hungarian_weights, L_next, assignment,
-                                                         self.shape_func)
-        
-            
-        old_data = client_model.get_params()
-        gl_weights = []
-        for worker in range(J):
-            j = worker
-            gl_weights.append(reconstruct_weights(temp_network_weg[j], assignment[j], model_summary, old_data, model_summary[0]))
-                    
-        models = local_train(clients[:40], gl_weights, 0, config)
-        batch_weights = models
+            matching_shapes.append(L_next)
+            temp_network_weg = combine_network_after_matching(batch_weights, cur_l, 
+                                                              model_summary, model_meta_data,
+                                                              layer_hungarian_weights, L_next, assignment,
+                                                             matching_shapes, self.shape_func)
+
+
+            old_data = client_model.get_params()
+            gl_weights = []
+            for worker in range(J):
+                j = worker
+                gl_weights.append(reconstruct_weights(temp_network_weg[j], assignment[j], 
+                                                      model_summary, old_data, 
+                                                      model_summary[2 * cur_l - 2]))
+
+            models = local_train(clients[:40], gl_weights, cur_l, config)
+            batch_weights = list(map(apply_by_j, models))
+            for i in batch_weights[0]:
+                print("iter-{}, batched_0 shape: {}".format(cur_l, i.shape))
         
         ## we handle the last layer carefully here ...
         ## averaging the last layer
@@ -213,7 +239,7 @@ class Fedbayes_Sing_Trainer:
             # firstly we combine last layer's weight and bias
             bias_shape = batch_weights[worker][-1].shape
             last_layer_bias = batch_weights[worker][-1].reshape((1, bias_shape[0]))
-            last_layer_weights = np.concatenate((batch_weights[worker][-2], last_layer_bias), axis=0)
+            last_layer_weights = np.concatenate((batch_weights[worker][-2].T, last_layer_bias), axis=0)
 
             # the directed normalization doesn't work well, let's try weighted averaging
             last_layer_weights_collector.append(last_layer_weights)
@@ -229,12 +255,12 @@ class Fedbayes_Sing_Trainer:
             avg_last_layer_weight[:, i] = avg_weight_collector
 
         #avg_last_layer_weight = np.mean(last_layer_weights_collector, axis=0)
-        for i in range(len(model_summary)):
-            if i < (len(model_summary) - 2):
+        for i in range(C * 2):
+            if i < (C * 2 - 2):
                 matched_weights.append(batch_weights[0][i])
 
         matched_weights.append(avg_last_layer_weight[0:-1, :])
-        matched_weights.append(avg_last_layer_weight[-1, :])        
+        matched_weights.append(avg_last_layer_weight[-1, :]) 
         
         
 #         num_rounds = config["num-rounds"]

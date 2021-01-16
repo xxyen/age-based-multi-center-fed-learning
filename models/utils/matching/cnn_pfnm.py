@@ -130,7 +130,7 @@ def layerwise_sampler(batch_weights, layer_index, batch_frequencies, sigma_layer
 
         layer_type = model_layer_type[2 * layer_index - 2]
         prev_layer_type = model_layer_type[2 * layer_index - 2 - 2]
-        first_fc_identifier = (layertype == first_fc_name)
+        first_fc_identifier = (layer_type == first_fc_name)
         gwc_shape = global_weights_c.shape
         if "conv" in layer_type:
             global_weights_out = [global_weights_c[:, 0:gwc_shape[1]-1], global_weights_c[:, gwc_shape[1]-1]]
@@ -151,7 +151,7 @@ def layerwise_sampler(batch_weights, layer_index, batch_frequencies, sigma_layer
         elif "dense" in layer_type:
             global_weights_out = [global_weights_c[:, 0:gwc_shape[1]-1].T, global_weights_c[:, gwc_shape[1]-1]]
             global_inv_sigmas_out = [global_sigmas_c[:, 0:gwc_shape[1]-1].T, global_sigmas_c[:, gwc_shape[1]-1]]
-        print("Branch layer index, Layer index: {}, Global weights out shapes: {}".format(layer_index, [gwo.shape for gwo in global_weights_out]))
+        print("Branch C, layer index, Layer index: {}, Global weights out shapes: {}".format(layer_index, [gwo.shape for gwo in global_weights_out]))
 
     print("global inv sigma out shape: {}".format([giso.shape for giso in global_inv_sigmas_out]))
     map_out = [g_w / g_s for g_w, g_s in zip(global_weights_out, global_inv_sigmas_out)]
@@ -244,7 +244,7 @@ def matching_upd_j(weights_j, global_weights, sigma_inv_j, global_sigmas, prior_
     full_cost = compute_cost(global_weights.astype(np.float32), weights_j.astype(np.float32), global_sigmas.astype(np.float32), sigma_inv_j.astype(np.float32), prior_mean_norm.astype(np.float32), prior_inv_sigma.astype(np.float32),
                              popularity_counts, gamma, J)
     compute_cost_dur = time.time() - compute_cost_start
-    #logger.info("###### Compute cost dur: {}".format(compute_cost_dur))
+#     print("###### Compute cost dur: {}".format(compute_cost_dur))
 
     #row_ind, col_ind = linear_sum_assignment(-full_cost)
     # please note that this can not run on non-Linux systems
