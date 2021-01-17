@@ -32,7 +32,6 @@ def saved_cls_counts(clients, file):
 
 def pdm_prepare_freq(cls_freqs, n_classes=10):
     freqs = []
-    print("pdm: ", sorted(cls_freqs.keys()))
     for net_i in sorted(cls_freqs.keys()):
         net_freqs = [0] * n_classes
 
@@ -126,6 +125,8 @@ class Fedbayes_Sing_Trainer:
                 else:
                     total_num_counts += 0
                     worker_class_counts[c] = 0
+            if total_num_counts == 0:
+                print("#" * 5, ", strange, total 0 happened.")
             averaging_weights[:, i] = np.array(worker_class_counts) / total_num_counts
 
         return averaging_weights, ret_class_freq
@@ -247,9 +248,7 @@ class Fedbayes_Sing_Trainer:
         return
 
     def batch_BBPMAP(self, batch_clients, state_dict, client_model, config, args):
-        model_summary = client_model.get_summary()
-        for v in model_summary:
-            print(v)            
+        model_summary = client_model.get_summary()        
         model_meta_data = client_model.get_meta_data()
         
         n_classes = self.num_classes
@@ -315,8 +314,6 @@ class Fedbayes_Sing_Trainer:
 
             models = local_train(batch_clients, gl_weights, cur_l, config)
             batch_weights = list(map(apply_by_j, models))
-            for i in batch_weights[0]:
-                print("iter-{}, batched_0 shape: {}".format(cur_l, i.shape))
         
         ## we handle the last layer carefully here ...
         ## averaging the last layer
