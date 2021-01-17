@@ -10,15 +10,16 @@ def patch_weights(w_j, L_next, assignment_j_c):
         return w_j
     new_w_j = np.zeros((w_j.shape[0], L_next))
     new_w_j[:, assignment_j_c] = w_j
-    return new_w_j
+    indices = [x for x in range(L_next) if x in assignment_j_c]
+    return new_w_j[:, indices]
 
 
 def reconstruct_weights(weight, assignment, model_summary, old_data, layer_identifier=None, slice_dim="filter"):
     res_weights = []
     conv_varname, dense_varname, weight_varname = "conv", "dense", "kernel"
-    print("current layer name ", layer_identifier)
+#     print("current layer name ", layer_identifier)
     for var_name, o, value in zip(model_summary, old_data, weight):
-        print("processing {} old shape is {}, new shape is {}".format(var_name, o.shape, value.shape))
+#         print("processing {} old shape is {}, new shape is {}".format(var_name, o.shape, value.shape))
         if var_name.startswith(conv_varname):
             if var_name.endswith(weight_varname):
                 w = value.transpose()
@@ -142,7 +143,8 @@ def local_train(clients, whole_network, layer_index, config):
         if (seq not in trainables):
             rem_collection.append(trainable_collection[seq])
             
-    # i) we need to set trainable variable collections to remove those 
+    # i) we need to set trainable variable collections from which those
+    # frozen variable can be removed
     for v in rem_collection:
         trainable_collection.remove(v)
     retrained_models = []

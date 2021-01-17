@@ -21,7 +21,8 @@ def layerwise_sampler(batch_weights, layer_index, batch_frequencies, sigma_layer
         gamma_layers = (n_layers - 1) * [gamma_layers]
 
     last_layer_const = []
-    total_freq = sum(batch_frequencies)
+    total_freq = np.array(batch_frequencies).sum()
+#     print("what holds in b_freq: {}, total: {}".format(batch_frequencies, total_freq))
     for f in batch_frequencies:
         last_layer_const.append(f / total_freq)
 
@@ -34,7 +35,7 @@ def layerwise_sampler(batch_weights, layer_index, batch_frequencies, sigma_layer
     for bw in batch_weights[0]:
         if len(bw.shape) > 1:
             init_channel_kernel_dims.append(bw.shape[1])
-    print("init_channel_kernel_dims: {}".format(init_channel_kernel_dims))
+    #print("init_channel_kernel_dims: {}".format(init_channel_kernel_dims))
     
     sigma_bias_layers = sigma_layers
     sigma0_bias_layers = sigma0_layers

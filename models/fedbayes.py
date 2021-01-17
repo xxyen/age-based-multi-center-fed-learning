@@ -32,7 +32,7 @@ def saved_cls_counts(clients, file):
 
 def pdm_prepare_freq(cls_freqs, n_classes=10):
     freqs = []
-
+    print("pdm: ", sorted(cls_freqs.keys()))
     for net_i in sorted(cls_freqs.keys()):
         net_freqs = [0] * n_classes
 
@@ -106,26 +106,66 @@ class Fedbayes_Sing_Trainer:
         self.test_data = test_data
         self.num_classes = 0 
         self.shape_func = None
+        self.upd_collector = []
         
-    def avg_cls_weights(self, dataset, num_classes):
+    def avg_cls_weights(self, batch, dataset, num_classes):
         all_class_freq = load_counts(dataset)
-        J = len(all_class_freq)
+        J = len(batch)
+        wids = [ c.id for c in batch ]
+        wcnt = [ i for i in range(len(batch))]
+        ret_class_freq = {c.id: all_class_freq[c.id] for c in batch}
 
         averaging_weights = np.zeros((J, num_classes), dtype=np.float32)
         for i in range(num_classes):
             total_num_counts = 0
             worker_class_counts = [0] * J
-            for j in range(J):
-                w = list(all_class_freq.keys())[j]
-                if i in all_class_freq[w].keys():
-                    total_num_counts += all_class_freq[w][i]
-                    worker_class_counts[j] = all_class_freq[w][i]
+            for j, c in zip(wids, wcnt):
+                if i in all_class_freq[j].keys():
+                    total_num_counts += all_class_freq[j][i]
+                    worker_class_counts[c] = all_class_freq[j][i]
                 else:
                     total_num_counts += 0
-                    worker_class_counts[j] = 0
-            averaging_weights[:, i] = worker_class_counts / total_num_counts
+                    worker_class_counts[c] = 0
+            averaging_weights[:, i] = np.array(worker_class_counts) / total_num_counts
 
-        return averaging_weights, all_class_freq
+        return averaging_weights, ret_class_freq
+    
+    def recover_weights(self, weights, assignment, model_summary, model_meta_data):
+        res_weights = []
+        conv_varname, dense_varname, weight_varname = "conv", "dense", "kernel"
+        #print("checking len, model summ: {}, model meta data: {}".format(len(model_summary), len(model_meta_data)))
+        for var_name, o, v in zip(model_summary, model_meta_data, weights):
+            print("name {}, old shape is {}, new shape is {}".format(var_name, o, v.shape))
+            if var_name.startswith(conv_varname):
+                if var_name.endswith(weight_varname):
+                    w = v.reshape(o)
+                    w = w.transpose((2, 3, 1, 0))
+                else:
+                    w = v
+            elif var_name.startswith("batch"):
+                w = np.ones(o)
+            elif var_name.startswith(dense_varname):
+                if var_name.endswith(weight_varname):
+                    w = v.transpose()
+                else:
+                    w = v
+            res_weights.append(w)
+        # just change last layer, carefully, not sure how it works
+        # do check the reason out after Jan, find a way to 
+        # improve it.
+        res_weights[-2] = res_weights[-2].T
+        return res_weights
+    
+    def train_model(self, client_model, train_data, weights, assignment, config):
+        # what maintain by assignment is a dictionary of 
+        #{layer_name: [global_id]}
+        # the meaning of it is a worker's all layer(except last) matching assignment
+        epochs = config["epochs"]
+        batch_size = config["batch-size"]        
+        client_model.set_params(weights)
+        client_model.train(train_data, num_epochs=epochs, batch_size=batch_size)
+        update = client_model.get_params()
+        self.upd_collector.append(update)
         
     def model_config(self, config, dataset, my_model):   
         shared_model = my_model
@@ -164,33 +204,72 @@ class Fedbayes_Sing_Trainer:
     
     def begins(self, config, args):
         clients, server, client_model = self.model_config(config, args.dataset, 'cnn')        
+               
+        num_rounds = config["num-rounds"]
+        eval_every = config["eval-every"]
+        epochs_per_round = config['epochs']
+        batch_size = config['batch-size']
+        clients_per_round = config["clients-per-round"]
+        state_dict = {}
+        
+        # Test untrained model on all clients
+#         stat_metrics = server.test_model(clients)
+#         all_ids, all_groups, all_num_samples = server.get_clients_info(clients)
+#         print_metrics(stat_metrics, all_num_samples)
+        gl_weight = client_model.get_params()
+        model_summary = client_model.get_summary()
+        model_meta_data = client_model.get_meta_data()
+        first = True
+               
+        for i in range(num_rounds):
+            print('--- Round %d of %d: Training %d Clients ---' % (i+1, num_rounds, clients_per_round))
+            
+            server.select_clients(clients, num_clients=clients_per_round)
+            batch_clients = server.selected_clients
+            if first:
+                cw = gl_weight
+            else:
+                cw = self.recover_weights(gl_weight, assignment, model_summary, model_meta_data)
+            for k in batch_clients:
+                if first or not (k.id in state_dict):
+                    assignment = []
+                else:
+                    assignment = state_dict[k.id]
+                self.train_model(client_model, k.train_data, cw, assignment, config)
+            first = False
+                
+            gl_weight = self.batch_BBPMAP(batch_clients, state_dict, client_model, config, args)
+        
+        client_model.close()
+        
+    def ends(self):
+        print("experiment of Fedbayes finished.")
+        return
+
+    def batch_BBPMAP(self, batch_clients, state_dict, client_model, config, args):
         model_summary = client_model.get_summary()
         for v in model_summary:
-            print(v)
-            
+            print(v)            
         model_meta_data = client_model.get_meta_data()
-        models = load_files() # a bit hardcode here
-        it = 10
         
         n_classes = self.num_classes
-        averaging_weights, cls_freqs = self.avg_cls_weights(args.dataset, self.num_classes)
+        averaging_weights, cls_freqs = self.avg_cls_weights(batch_clients, args.dataset, self.num_classes)
         sigma=config["sigma"]
         sigma0=config["sigma0"]
         gamma=config["gamma"]
+        it = config["sample-iter"]
         assignments_list = []
-
-        apply_by_j = lambda j: load_local_model_weight_func(j, model_summary)
-        batch_weights = list(map(apply_by_j, models))
-        keeped_batch_weights = copy.deepcopy(batch_weights)
-
-        batch_freqs = pdm_prepare_freq(cls_freqs, self.num_classes)
         # param names explained:
         # C is the number of layers for model structure, no counting bias
-        # J is the number of users (workers)
-        C = int(len(batch_weights[0]) / 2)
-        J = len(models)
+        # J is the number of clients (workers)
+        C = int(len(model_meta_data) / 2)
+        J = len(batch_clients)
         matching_shapes = []
-        fc_pos = None
+        fc_pos = None        
+
+        apply_by_j = lambda j: load_local_model_weight_func(j, model_summary)
+        batch_weights = list(map(apply_by_j, self.upd_collector))
+        batch_freqs = pdm_prepare_freq(cls_freqs, self.num_classes)
         
         for cur_l in range(1, C):
             layer_hungarian_weights, assignment, L_next = layerwise_sampler(
@@ -206,7 +285,16 @@ class Fedbayes_Sing_Trainer:
                  n_layers= C,
                  matching_shapes=matching_shapes,
                  )
-            assignments_list.append(assignment) 
+            assignments_list.append(assignment)
+            for client, a_val in zip(batch_clients, assignment):
+                p_index = 2 * (cur_l -1)
+                v_name = model_summary[p_index]
+                if client.id in state_dict:
+                    cdict = state_dict[client.id]
+                else:
+                    cdict = {}
+                cdict.update({v_name: a_val})
+                state_dict.update({client.id : cdict})
             print("Number of assignment: {}, L_next: {}, matched_weight shape: {} ".format(
                 len(assignment), L_next, layer_hungarian_weights[0].shape) )
 
@@ -225,7 +313,7 @@ class Fedbayes_Sing_Trainer:
                                                       model_summary, old_data, 
                                                       model_summary[2 * cur_l - 2]))
 
-            models = local_train(clients[:40], gl_weights, cur_l, config)
+            models = local_train(batch_clients, gl_weights, cur_l, config)
             batch_weights = list(map(apply_by_j, models))
             for i in batch_weights[0]:
                 print("iter-{}, batched_0 shape: {}".format(cur_l, i.shape))
@@ -260,30 +348,7 @@ class Fedbayes_Sing_Trainer:
                 matched_weights.append(batch_weights[0][i])
 
         matched_weights.append(avg_last_layer_weight[0:-1, :])
-        matched_weights.append(avg_last_layer_weight[-1, :]) 
+        matched_weights.append(avg_last_layer_weight[-1, :])
+        self.upd_collector = []
         
-        
-#         num_rounds = config["num-rounds"]
-#         eval_every = config["eval-every"]
-#         epochs_per_round = config['epochs']
-#         batch_size = config['batch-size']
-#         clients_per_round = config["clients-per-round"]
-        
-#         print('--- Round %d of %d: Training %d Clients ---' % (0+1, 1, clients_per_round))
-
-#         joined = np.random.choice(clients, 40, replace=False)
-#         for c in joined:
-#             c.model.set_params(server.model)
-#             comp, num_samples, update = c.train(epochs_per_round, batch_size, None, False)
-            
-#             saved_file = os.path.join("workernn", "{}_{}.pb".format(args.dataset, c.id))
-#             with open(saved_file, 'wb+') as f:
-#                 pickle.dump(update, f)
-                
-#         saved_cls_counts(joined, "{}_counts".format(args.dataset))
-        client_model.close()
-        
-    def ends(self):
-        print("experiment of Fedbayes finished.")
-        return
-            
+        return matched_weights
