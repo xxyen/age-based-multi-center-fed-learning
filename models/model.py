@@ -156,10 +156,16 @@ class Model(ABC):
         x_vecs = self.process_x(data['x'])
         labels = self.process_y(data['y'])
         with self.graph.as_default():
-            tot_acc, loss, pred_ops = self.sess.run(
-                [self.eval_metric_ops, self.loss, self.pred_ops],
-                feed_dict={self.features: x_vecs, self.labels: labels}
-            )
+            if self.prox_term is not None:
+                tot_acc, loss, pred_ops = self.sess.run(
+                    [self.eval_metric_ops, self.loss, self.pred_ops],
+                    feed_dict={self.features: x_vecs, self.labels: labels, self.prox_term: []}
+                )
+            else:
+                tot_acc, loss, pred_ops = self.sess.run(
+                    [self.eval_metric_ops, self.loss, self.pred_ops],
+                    feed_dict={self.features: x_vecs, self.labels: labels, }
+                )                
         acc = float(tot_acc) / x_vecs.shape[0]
 
         if  len(np.array(labels).shape) ==2:

@@ -15,7 +15,7 @@ class ClientProxModel(Model):
 
     def create_model(self):
         """Model function for CNN."""
-        prox_term = tf.Variable(0.0)
+        prox_term = tf.placeholder("float", [None, ]) 
         features = tf.placeholder(
             tf.float32, shape=[None, IMAGE_SIZE * IMAGE_SIZE], name='features')
         labels = tf.placeholder(tf.int64, shape=[None], name='labels')
@@ -35,14 +35,15 @@ class ClientProxModel(Model):
             activation=tf.nn.relu)
         pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
         pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-        dense = tf.layers.dense(inputs=pool2_flat, units=2048, activation=tf.nn.relu)
+        dense = tf.layers.dense(inputs=pool2_flat, units=200, activation=tf.nn.relu)
         logits = tf.layers.dense(inputs=dense, units=self.num_classes)
         predictions = {
           "classes": tf.argmax(input=logits, axis=1),
           "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
         }
-        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        loss = loss + prox_term
+        
+        l2_loss = self.mu * tf.reduce_sum(prox_term)
+        loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits) + l2_loss
         train_op = self.optimizer.minimize(
             loss=loss, global_step=tf.train.get_global_step())
 #         grads_and_vars = self.optimizer.compute_gradients(loss)
@@ -62,27 +63,31 @@ class ClientProxModel(Model):
 
     def run_epoch(self, data, batch_size):
         ravel = lambda x,y: np.ravel(x) - np.ravel(y)
-        sqeuclidean = lambda x: np.inner(x, x)  
+        sumall = lambda x, y: np.sum(ravel(x, y) ** 2)
         
         for batched_x, batched_y in batch_data(data, batch_size):
             
             input_data = self.process_x(batched_x)
             target_data = self.process_y(batched_y)
             
-            local_w = self.get_params()
             global_w = self.gl_ws
-            prox_term = 0.
+            local_w = self.get_params()
+            first = True
+            tup_diff = []
             for local_v, gl_v in zip(local_w, global_w):
-                prox_term += self.mu * sqeuclidean(ravel(local_v, gl_v))
-               
+                if first:
+                    first = False
+                else:
+                    tup_diff.append(sumall(local_v, gl_v))
+            
             with self.graph.as_default():
-                self.sess.run(self.prox_term.assign(prox_term))
                 self.sess.run(self.train_op,
                     feed_dict={
+                        self.prox_term: tup_diff,
                         self.features: input_data,
                         self.labels: target_data
                     })
-                self.sess.run(self.prox_term.assign(0.0))
+
                 
     def fix_global_ws(self, ws):
         self.gl_ws = ws    
