@@ -1,9 +1,7 @@
 import copy
 import importlib
 import os
-import pickle
 import numpy as np
-import re
 import tensorflow as tf
 
 import logging
@@ -13,87 +11,27 @@ from client import Client
 from server import Server
 from model import ServerModel
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
-from baseline_constants import KERNAL_WIDTH, KERNEL_HEIGHT, NUM_INPUT_CHANNEL, NUM_OUTPUT_CHANNEL
+from fedbayes_helper import *
+from fedbayes_tinyhelper import *
+
+import metrics.writer as metrics_writer
+STAT_METRICS_PATH = 'metrics/stat_metrics.csv'
+SYS_METRICS_PATH = 'metrics/sys_metrics.csv'
 
 #from utils.matching.pfnm import layer_group_descent as pdm_multilayer_group_descent
 from utils.matching.cnn_pfnm import layerwise_sampler
 from utils.matching.cnn_retrain import reconstruct_weights, local_train, combine_network_after_matching
 
-def saved_cls_counts(clients, file):
-    net_cls_counts = {}
-
-    for c in clients:
-        unq, unq_cnt = np.unique(c.train_data['y'], return_counts=True)
-        tmp = {unq[i]: unq_cnt[i] for i in range(len(unq))}
-        net_cls_counts[c.id] = tmp
-        
-    with open(file, 'wb+') as f:
-        pickle.dump(net_cls_counts, f)
-
-def pdm_prepare_freq(cls_freqs, n_classes=10):
-    freqs = []
-    for net_i in sorted(cls_freqs.keys()):
-        net_freqs = [0] * n_classes
-
-        for cls_i in cls_freqs[net_i]:
-            net_freqs[cls_i] = cls_freqs[net_i][cls_i]
-
-        freqs.append(np.array(net_freqs))
-
-    return freqs
-
-def load_counts(dataset):
-    fname = "{}_counts".format(dataset)
-    with open(fname, 'rb') as f:
-        loaded_cls_counts = pickle.load(f) 
-    return loaded_cls_counts
-
-def load_files():
-    def get_weightfile():
-        sepath = os.path.join(".", "workernn")
-        j_files =  [f for f in os.listdir(sepath) if re.match("femnist_.{5}_.{2}\.pb", f)]
-        return j_files
-
-    def process_file(f):
-        fname = os.path.join("workernn", f)
-        with open(fname, 'rb') as file:
-            w = pickle.load(file)        
-        return w 
-    
-    return list(map(process_file, get_weightfile()))
-
-def get_cnn_w(value):
-    o_shape = value.shape
-    width, height = o_shape[KERNAL_WIDTH], o_shape[KERNEL_HEIGHT]
-    num_in_chn, num_out_chn = o_shape[NUM_INPUT_CHANNEL], o_shape[NUM_OUTPUT_CHANNEL]
-    n_shape = (width * height * num_in_chn, num_out_chn)    
-    w = value.reshape(n_shape)
-    # IMPORTANAT, here need to invoke transpose , because
-    # in orignal paper, they use pytorch, and the order in 
-    # pytorch is different from tensorflow
-    # the order is (NUM_OUTPUT_CHANNEL, NUM_INPUT_CHANNEL, ker_width, ker_height)
-    w = w.transpose() 
-    return w
-
-
-    
-def load_local_model_weight_func(model, model_summary):
-    all_layers = []
-    dense_varname, weight_varname = "dense", "kernel"
-    for var_name, value in zip(model_summary, model):
-        if var_name.startswith("conv"):
-            if var_name.endswith(weight_varname):
-                all_layers.append(get_cnn_w(value))
-            else:
-                all_layers.append(value)
-        elif var_name.startswith("batch"):
-            pass
-        elif var_name.startswith(dense_varname):
-            if var_name.endswith(weight_varname):
-                all_layers.append(value.transpose())
-            else:
-                all_layers.append(value)
-    return all_layers
+def print_metrics(metrics, weights):
+    ordered_weights = [weights[c] for c in sorted(weights)]
+    metric_names = metrics_writer.get_metrics_names(metrics)
+    for metric in metric_names:
+        ordered_metric = [metrics[c][metric] for c in sorted(metrics)]
+        print('%s: %g, 10th percentile: %g, 90th percentile %g' \
+              % (metric,
+                 np.average(ordered_metric, weights=ordered_weights),
+                 np.percentile(ordered_metric, 10),
+                 np.percentile(ordered_metric, 90)))
 
 class Fedbayes_Sing_Trainer:
     
@@ -106,30 +44,6 @@ class Fedbayes_Sing_Trainer:
         self.num_classes = 0 
         self.shape_func = None
         self.upd_collector = []
-        
-    def avg_cls_weights(self, batch, dataset, num_classes):
-        all_class_freq = load_counts(dataset)
-        J = len(batch)
-        wids = [ c.id for c in batch ]
-        wcnt = [ i for i in range(len(batch))]
-        ret_class_freq = {c.id: all_class_freq[c.id] for c in batch}
-
-        averaging_weights = np.zeros((J, num_classes), dtype=np.float32)
-        for i in range(num_classes):
-            total_num_counts = 0
-            worker_class_counts = [0] * J
-            for j, c in zip(wids, wcnt):
-                if i in all_class_freq[j].keys():
-                    total_num_counts += all_class_freq[j][i]
-                    worker_class_counts[c] = all_class_freq[j][i]
-                else:
-                    total_num_counts += 0
-                    worker_class_counts[c] = 0
-            if total_num_counts == 0:
-                print("#" * 5, ", strange, total 0 happened.")
-            averaging_weights[:, i] = np.array(worker_class_counts) / total_num_counts
-
-        return averaging_weights, ret_class_freq
     
     def recover_weights(self, weights, assignment, model_summary, model_meta_data):
         res_weights = []
@@ -203,6 +117,7 @@ class Fedbayes_Sing_Trainer:
         print('%d Clients in Total' % len(clients)) 
         return clients, server, client_model
     
+    
     def begins(self, config, args):
         clients, server, client_model = self.model_config(config, args.dataset, 'cnn')        
                
@@ -217,30 +132,45 @@ class Fedbayes_Sing_Trainer:
 #         stat_metrics = server.test_model(clients)
 #         all_ids, all_groups, all_num_samples = server.get_clients_info(clients)
 #         print_metrics(stat_metrics, all_num_samples)
-        gl_weight = client_model.get_params()
+
+    
+
         model_summary = client_model.get_summary()
         model_meta_data = client_model.get_meta_data()
+#         gl_weight = client_model.get_params()
+        gl_weight = self.batch_BBPMAP(clients[:40], state_dict, client_model, config, args)
+        gl_weight = self.recover_weights(gl_weight, [], model_summary, model_meta_data)
+        server.model = gl_weight        
+        stat_metrics = server.test_model(clients[:40])
+        all_ids, all_groups, all_num_samples = server.get_clients_info(clients[:40])
+        print_metrics(stat_metrics, all_num_samples)
         first = True
                
-        for i in range(num_rounds):
-            print('--- Round %d of %d: Training %d Clients ---' % (i+1, num_rounds, clients_per_round))
+#         for i in range(num_rounds):
+#             print('--- Round %d of %d: Training %d Clients ---' % (i+1, num_rounds, clients_per_round))
             
-            server.select_clients(clients, num_clients=clients_per_round)
-            batch_clients = server.selected_clients
-            if first:
-                cw = gl_weight
-            else:
-                cw = self.recover_weights(gl_weight, assignment, model_summary, model_meta_data)
-            for k in batch_clients:
-                if first or not (k.id in state_dict):
-                    assignment = []
-                else:
-                    assignment = state_dict[k.id]
-                self.train_model(client_model, k.train_data, cw, assignment, config)
-            first = False
-                
-            gl_weight = self.batch_BBPMAP(batch_clients, state_dict, client_model, config, args)
-        
+#             server.select_clients(clients, num_clients=clients_per_round)
+#             batch_clients = server.selected_clients
+#             if first:
+#                 cw = gl_weight
+#             else:
+#                 cw = self.recover_weights(gl_weight, assignment, model_summary, model_meta_data)
+#             for k in batch_clients:
+#                 if first or not (k.id in state_dict):
+#                     assignment = []
+#                 else:
+#                     assignment = state_dict[k.id]
+#                 self.train_model(client_model, k.train_data, cw, assignment, config)
+               
+#             gl_weight = self.batch_BBPMAP(batch_clients, state_dict, client_model, config, args)
+            
+#             if (i + 1) % eval_every == 0 or (i + 1) == num_rounds:
+#                 cw = self.recover_weights(gl_weight, assignment, model_summary, model_meta_data)
+#                 server.model = cw
+#                 stat_metrics = server.test_model(clients)
+#                 print_metrics(stat_metrics, all_num_samples)
+            
+#             first = False
         client_model.close()
         
     def ends(self):
@@ -252,7 +182,8 @@ class Fedbayes_Sing_Trainer:
         model_meta_data = client_model.get_meta_data()
         
         n_classes = self.num_classes
-        averaging_weights, cls_freqs = self.avg_cls_weights(batch_clients, args.dataset, self.num_classes)
+#         averaging_weights, cls_freqs = avg_cls_weights(batch_clients, args.dataset, n_classes)
+        averaging_weights, cls_freqs = avg_cls_weights(args.dataset, n_classes)
         sigma=config["sigma"]
         sigma0=config["sigma0"]
         gamma=config["gamma"]
@@ -261,13 +192,14 @@ class Fedbayes_Sing_Trainer:
         # param names explained:
         # C is the number of layers for model structure, no counting bias
         # J is the number of clients (workers)
+        net_list = load_files()
         C = int(len(model_meta_data) / 2)
-        J = len(batch_clients)
+        J = len(net_list)
         matching_shapes = []
         fc_pos = None        
 
         apply_by_j = lambda j: load_local_model_weight_func(j, model_summary)
-        batch_weights = list(map(apply_by_j, self.upd_collector))
+        batch_weights = list(map(apply_by_j, net_list))
         batch_freqs = pdm_prepare_freq(cls_freqs, self.num_classes)
         
         for cur_l in range(1, C):

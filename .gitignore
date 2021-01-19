@@ -16,3 +16,4 @@ _templates/
 autodoc/
 models/mhab_server.py
 *.out
+pkl/

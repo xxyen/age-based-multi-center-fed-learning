@@ -12,7 +12,6 @@ from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
 from fedbayes import Fedbayes_Sing_Trainer
 from modelsaver import Model_Saver
-from fedbayes import saved_cls_counts
 
 def read_yamlconfig(args):
     yaml_file = os.path.join("..", "configs", args.experiment, "job.yaml")
