@@ -1,9 +1,7 @@
 numpy
 scipy
-tensorflow
+tensorflow==v1.15
 Pillow
 matplotlib
-jupyter
-pandas
 bokeh
 tqdm
