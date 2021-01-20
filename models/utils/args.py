@@ -16,6 +16,12 @@ def parse_job_args():
                     type=str,
                     required=True)
     
+    parser.add_argument('-configuration',
+                    help='file that maintains job settings',
+                    type=str,
+                    default='job.yaml',
+                    required=False)
+    
     return parser.parse_args()
 
 
