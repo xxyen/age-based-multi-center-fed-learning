@@ -1,6 +1,7 @@
 
 import os
 import sys
+import numpy as np
 import time
 
 from utils_io import get_job_config
@@ -8,6 +9,7 @@ from utils.model_utils import read_data
 from utils.args import parse_job_args
 
 
+from fedsem import Fedsem_Trainer
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
 from fedbayes import Fedbayes_Sing_Trainer
@@ -55,6 +57,19 @@ def main():
         trainer = Model_Saver(users, groups, train_data, test_data)
         trainer.begins(config, args)
         trainer.ends()        
+    elif args.experiment == 'fedsem':
+        exp_seeds = config["exp-seeds"]
+        book_keep = [0.] * len(exp_seeds)
+        for j, se in enumerate(exp_seeds):
+            config["seed"] = se
+            trainer = Fedsem_Trainer(users, groups, train_data, test_data)
+            book_keep[j] = trainer.begins(config, args)
+            trainer.ends() 
+        print(book_keep)
+        book_k = np.array(book_keep) * 100
+        print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
+                                                  np.std(book_k),
+                                                 np.median(book_keep)))
     else:
         print("Applications not defined. Please check configs directory if the name is right.")
         

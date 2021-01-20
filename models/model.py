@@ -77,7 +77,8 @@ class Model(ABC):
     def optimizer(self):
         """Optimizer to be used by the model."""
         if self._optimizer is None:
-            self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr)
+#             self._optimizer = tf.compat.v1.train.MomentumOptimizer(self.lr, 0.91, use_nesterov=True)
+            self._optimizer = tf.train.GradientDescentOptimizer(learning_rate=self.lr )
 
         return self._optimizer
 

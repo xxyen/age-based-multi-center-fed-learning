@@ -66,7 +66,6 @@ class ClientModel(Model):
           "probabilities": tf.nn.softmax(logits, name="softmax_tensor")
         }
         loss = tf.losses.sparse_softmax_cross_entropy(labels=labels, logits=logits)
-        # TODO: Confirm that opt initialized once is ok?
         train_op = self.optimizer.minimize(
             loss=loss,
             global_step=tf.train.get_global_step())

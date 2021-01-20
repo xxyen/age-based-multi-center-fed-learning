@@ -17,18 +17,16 @@ from kmean_model import KmeanModel
 from outlkm_algor import OutlierKmeansAlgor
 from utils.args import parse_args
 
-CLUSTERING_SEED = 8433208
-
 class Mlhead_Clus_Server:
     
-    def __init__(self, client_model, dataset, model, num_clusters, num_clients):
-        args = parse_args()
+    def __init__(self, client_model, dataset, model, num_clusters, num_clients, clus_seed = 0):
         
 #        if num_clusters < 2:
 #            raise Exception("Sorry, cluster number must be 2 or more")
         if num_clusters > 10:
             raise Exception("Sorry, cluster number must less than 10") 
         if num_clusters != -1:
+            self.regul_term = 0.1
             self.model = client_model.get_params()  # global model of the server.
             self.selected_clients = [] # this variable keeps random, unclustered clients
             self.set_model_path(dataset, model)
@@ -37,11 +35,11 @@ class Mlhead_Clus_Server:
             self._num_clusters = num_clusters
             self._learned = None
             self._clusterModel = KmeanModel(num_clients, self._x_dimensions, \
-                                                self._num_clusters, CLUSTERING_SEED) 
+                                                self._num_clusters, clus_seed) 
             
             self._outlkmalgor = OutlierKmeansAlgor(num_clients, self._x_dimensions, 
-                                                   num_clusters, max_iter=2, seed= CLUSTERING_SEED,
-                                                  threshold_dis = args.regul_term)
+                                                   num_clusters, max_iter=2, seed= clus_seed,
+                                                  threshold_dis = self.regul_term)
         """
         cluster_membership is a list of cluster dictionary,
         each contains {'member':list of clients, 
@@ -84,7 +82,7 @@ class Mlhead_Clus_Server:
             list of (num_train_samples, num_test_samples)
         """
         num_clients = len(possible_clients)
-        np.random.seed(my_round * 50)
+        np.random.seed(my_round + 20)
         self.selected_clients = np.random.choice(possible_clients, num_clients, replace=False)
 
         return [(c.num_train_samples, c.num_test_samples) for c in self.selected_clients]
@@ -152,16 +150,16 @@ class Mlhead_Clus_Server:
     
     def get_init_point_data(self):
         #points = np.random.normal(loc=0.5, scale=0.5, size= (len(self.selected), self._x_dimensions)) 
-        points = np.random.uniform(-0.5, 0.5, (len(self.selected), self._x_dimensions))
+        points = np.random.uniform(-0.01, 0.01, (len(self.selected), self._x_dimensions))
         c_dict = {}
         for x, client in enumerate(self.selected):
             c_dict[client.id] = points[x]
 
         return c_dict
 
-    def run_clustering(self, prev_score, data):
+    def run_clustering(self, data):
         labels = self._clusterModel.assign_clusters([data[k] for k in data] )
-        return None, self.eval_clustermembership(labels)
+        return self.eval_clustermembership(labels)
         
     def train_kmeans(self, prev_score, data):
         """We are using pre-made tensorflow estimators to 
@@ -212,7 +210,7 @@ class Mlhead_Clus_Server:
         """
 
         for _, cluster in enumerate(self._cluster_membership):
-            cluster["member"] = list()
+            cluster["member"].clear()
        
                     
         for x in range(len(labels)):
