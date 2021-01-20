@@ -16,7 +16,7 @@ from fedbayes import Fedbayes_Sing_Trainer
 from modelsaver import Model_Saver
 
 def read_yamlconfig(args):
-    yaml_file = os.path.join("..", "configs", args.experiment, "job.yaml")
+    yaml_file = os.path.join("..", "configs", args.experiment, args.configuration)
     job = get_job_config(yaml_file)
     params = job['PARAMS']
 
@@ -29,6 +29,9 @@ def read_yamlconfig(args):
     epochs = params['epochs']
     print("config epochs: ", epochs)
     
+    clients_per_round = params['clients-per-round']
+    print("config clients per round: ", clients_per_round)
+    
     return params
 
 def main():
@@ -39,38 +42,42 @@ def main():
     test_data_dir = os.path.join('..', 'data', args.dataset, 'data', 'test')   
     users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
     
-    if args.experiment == 'fedavg':
-        trainer = Fedavg_Trainer(users, groups, train_data, test_data)
-        trainer.begins(config, args)
-        trainer.ends()
-    elif args.experiment == 'fedprox':
-        trainer = Fedprox_Trainer(users, groups, train_data, test_data)
-        trainer.begins(config, args)
-        trainer.ends()
-    elif args.experiment == 'fedcluster':
-        pass
-    elif args.experiment == 'fedbayes':
-        trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
-        trainer.begins(config, args)
-        trainer.ends()
-    elif args.experiment == 'modelsaver':
-        trainer = Model_Saver(users, groups, train_data, test_data)
-        trainer.begins(config, args)
-        trainer.ends()        
-    elif args.experiment == 'fedsem':
-        exp_seeds = config["exp-seeds"]
-        book_keep = [0.] * len(exp_seeds)
-        for j, se in enumerate(exp_seeds):
-            config["seed"] = se
-            trainer = Fedsem_Trainer(users, groups, train_data, test_data)
-            book_keep[j] = trainer.begins(config, args)
+    exp_seeds, book_keep = config["exp-seeds"], [0.] * len(exp_seeds)
+    
+    for j, rnd_sed in enumerate(exp_seeds):
+        config["seed"] = rnd_sed
+        if args.experiment == 'fedavg':
+            trainer = Fedavg_Trainer(users, groups, train_data, test_data)
+            metric = trainer.begins(config, args)
+            trainer.ends()
+        elif args.experiment == 'fedprox':
+            trainer = Fedprox_Trainer(users, groups, train_data, test_data)
+            metric = trainer.begins(config, args)
+            trainer.ends()
+        elif args.experiment == 'fedcluster':
+            pass
+        elif args.experiment == 'feddane':
+            pass
+        elif args.experiment == 'fedbayes':
+            trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
+            metric =trainer.begins(config, args)
+            trainer.ends()
+        elif args.experiment == 'modelsaver':
+            trainer = Model_Saver(users, groups, train_data, test_data)
+            metric = trainer.begins(config, args)
+            trainer.ends()        
+        elif args.experiment == 'fedsem':
+            trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
+            metric = trainer.begins(config, args)
             trainer.ends() 
-        print(book_keep)
-        book_k = np.array(book_keep) * 100
-        print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
-                                                  np.std(book_k),
-                                                 np.median(book_keep)))
-    else:
-        print("Applications not defined. Please check configs directory if the name is right.")
+        else:
+            print("Applications not defined. Please check configs directory if the name is right.")
+            break
+        book_keep[j] = metric
         
+    finals = np.array(book_keep) * 100
+    print(finals)
+    print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
+                                              np.std(finals),
+                                             np.median(finals)))        
 main()
