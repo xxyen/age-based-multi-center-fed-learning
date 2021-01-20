@@ -71,7 +71,7 @@ class Fedprox_Trainer:
         model_params_list[1] = config["mu"]
         model_params = tuple(model_params_list)
         tf.reset_default_graph()
-        client_model = ClientModel(*model_params)
+        client_model = ClientModel(config["seed"], *model_params)
 
         # Create server
         server = Server(client_model)

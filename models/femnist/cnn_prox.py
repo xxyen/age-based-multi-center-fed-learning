@@ -8,7 +8,7 @@ IMAGE_SIZE = 28
 
 
 class ClientProxModel(Model):
-    def __init__(self, seed, lr, mu, num_classes=62):
+    def __init__(self, seed, lr, mu, num_classes):
         self.num_classes = num_classes
         self.mu = mu
         super(ClientProxModel, self).__init__(seed, lr)
