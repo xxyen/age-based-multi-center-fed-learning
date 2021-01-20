@@ -124,8 +124,8 @@ class Mlhead_Clus_Server:
 
     def set_model_path(self, dataset, model):
     	self._path = os.path.join('/scratch/leaf/ckpt_runtime', dataset, model)
-    	if not os.path.exists(self._path):
-        	os.makedirs(self._path)
+#     	if not os.path.exists(self._path):
+#         	os.makedirs(self._path)
             
     def get_model_x_dimensions(self, dataset, model):
         key = "%s.%s" % (dataset, model)
