@@ -12,7 +12,7 @@ IMAGES_DIR = os.path.join('..', 'data', 'celeba', 'data', 'raw', 'img_align_cele
 
 
 class ClientModel(Model):
-    def __init__(self, seed, lr, num_classes=2, optimizer):
+    def __init__(self, seed, lr, num_classes, optimizer):
         self.num_classes = num_classes
         super(ClientModel, self).__init__(seed, lr)
 
