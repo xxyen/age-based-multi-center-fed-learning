@@ -1,7 +1,11 @@
 numpy
+sklearn
+pandas
 scipy
-tensorflow==v1.15
+tensorflow==1.15
 Pillow
 matplotlib
 bokeh
 tqdm
+cmake
+lapsolver=1.1.0
