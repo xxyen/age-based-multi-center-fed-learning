@@ -43,6 +43,9 @@ def print_metrics(metrics, weights):
                  np.average(ordered_metric, weights=ordered_weights),
                  np.percentile(ordered_metric, 10),
                  np.percentile(ordered_metric, 90)))
+    fom = [metrics[c][metric_names[0]] for c in sorted(metrics)]
+    final = np.average(fom, weights=ordered_weights)
+    return final
 
 class Fedprox_Trainer:
     
@@ -100,6 +103,7 @@ class Fedprox_Trainer:
         print_metrics(stat_metrics, all_num_samples)
 
         # Simulate training
+        micro_acc = 0.
         for i in range(num_rounds):
             print('--- Round %d of %d: Training %d Clients ---' % (i+1, num_rounds, clients_per_round))
 
@@ -112,14 +116,15 @@ class Fedprox_Trainer:
             # Test model on all clients
             if (i + 1) % eval_every == 0 or (i + 1) == num_rounds:
                 stat_metrics = server.test_model(clients)
-                print_metrics(stat_metrics, all_num_samples)
+                micro_acc = print_metrics(stat_metrics, all_num_samples)
 
         # Save server model
     #     save_model(server_model, args.dataset, shared_model)
 
         # Close models
     #     server_model.close()
-        client_model.close()        
+        client_model.close() 
+        return micro_acc
     
     def ends(self):
         print("experiment of Fedprox finished.")

@@ -188,3 +188,29 @@ class Server:
     def close_model(self):
 #         self.client_model.close()
         return
+
+class SGDServer(Server):
+    def __init__(self, client_model):
+        super(SGDServer, self).__init__(client_model)
+        
+    def train_model(self, single_center, batch_size=10, clients=None, apply_prox=False): 
+        if clients is None:
+            clients = self.selected_clients
+        sys_metrics = {
+            c.id: {BYTES_WRITTEN_KEY: 0,
+                   BYTES_READ_KEY: 0,
+                   LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
+        for c in clients:
+            if single_center is not None:
+                c.model.set_params(single_center)
+            else:
+                c.model.set_params(self.model)
+            comp, num_samples, update = c.train(1, batch_size, -1, apply_prox)
+
+            sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
+            sys_metrics[c.id][BYTES_WRITTEN_KEY] += c.model.size
+            sys_metrics[c.id][LOCAL_COMPUTATIONS_KEY] = comp
+
+            self.updates.append((num_samples, update))
+
+        return sys_metrics, self.updates    

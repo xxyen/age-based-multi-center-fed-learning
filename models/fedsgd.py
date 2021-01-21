@@ -1,3 +1,4 @@
+# note, fedsgd is very similar to fedavg
 import importlib
 import numpy as np
 import os
@@ -8,7 +9,7 @@ import metrics.writer as metrics_writer
 
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from client import Client
-from server import Server
+from server import SGDServer
 from model import ServerModel
 from utils.constants import DATASETS
 
@@ -44,7 +45,7 @@ def print_metrics(metrics, weights):
     final = np.average(fom, weights=ordered_weights)
     return final
 
-class Fedavg_Trainer:
+class Fedsgd_Trainer:
     
     def __init__(self, users, groups, train_data, test_data):
         self.users = users
@@ -74,7 +75,7 @@ class Fedavg_Trainer:
         client_model = ClientModel(*model_params)
 
         # Create server
-        server = Server(client_model)
+        server = SGDServer(client_model)
 
         # Create clients
         _users = self.users
@@ -89,7 +90,6 @@ class Fedavg_Trainer:
     
         num_rounds = config["num-rounds"]
         eval_every = config["eval-every"]
-        epochs_per_round = config['epochs']
         batch_size = config['batch-size']
         clients_per_round = config["clients-per-round"]
         
@@ -107,7 +107,7 @@ class Fedavg_Trainer:
             server.select_clients(online(clients), num_clients=clients_per_round)
             c_ids, c_groups, c_num_samples = server.get_clients_info(None)
 
-            sys_metics = server.train_model(single_center=None, num_epochs=epochs_per_round, batch_size=batch_size, minibatch=None)
+            sys_metics = server.train_model(single_center=None, batch_size=batch_size)
             server.update_model_wmode()
 
             # Test model on all clients
@@ -124,5 +124,5 @@ class Fedavg_Trainer:
         return micro_acc
     
     def ends(self):
-        print("-" * 3, "End of Fedavg exerpiment.", "-" * 3)
+        print("-" * 3, "End of Fedsgd exerpiment.", "-" * 3)
         return

@@ -2,7 +2,7 @@
  JOB_ID: "federated-proximal-noniid"
  API_VER: standard
  PARAMS:
-   num-rounds: 100
+   num-rounds: 60 
    epochs: 10
    eval-every: 10
    clients-per-round: 3

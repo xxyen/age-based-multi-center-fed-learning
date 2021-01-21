@@ -34,12 +34,10 @@ class Client:
             data = self.train_data
             comp, update = self.model.train(data, num_epochs, batch_size)
         else:
-            frac = min(1.0, minibatch)
-            num_data = max(1, int(frac*len(self.train_data["x"])))
+            data = self.train_data
+            num_data = min(batch_size, len(data))
             xs, ys = self.train_data["x"], self.train_data["y"]
-            data = {'x': xs, 'y': ys}
-
-            # Minibatch trains for only 1 epoch - multiple local epochs don't make sense!
+            data = {'x': xs[:num_data], 'y': ys[:num_data]}
             num_epochs = 1
             comp, update = self.model.train(data, num_epochs, num_data)
         num_train_samples = len(data['y'])

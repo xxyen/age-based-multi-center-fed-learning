@@ -12,6 +12,7 @@ from utils.args import parse_job_args
 from fedsem import Fedsem_Trainer
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
+from fedsgd import Fedsgd_Trainer
 from fedbayes import Fedbayes_Sing_Trainer
 from modelsaver import Model_Saver
 
@@ -56,8 +57,10 @@ def main():
             trainer.ends()
         elif args.experiment == 'fedcluster':
             pass
-        elif args.experiment == 'feddane':
-            pass
+        elif args.experiment == 'fedsgd':
+            trainer = Fedsgd_Trainer(users, groups, train_data, test_data)
+            metric =trainer.begins(config, args)
+            trainer.ends()            
         elif args.experiment == 'fedbayes':
             trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
             metric =trainer.begins(config, args)
@@ -78,6 +81,6 @@ def main():
     finals = np.array(book_keep) * 100
     print(finals)
     print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
-                                              np.std(finals),
+                                              np.var(finals),
                                              np.median(finals)))        
 main()
