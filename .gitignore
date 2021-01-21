@@ -17,3 +17,6 @@ autodoc/
 models/mhab_server.py
 *.out
 pkl/
+*.pb
+workernn/
+*.zip
