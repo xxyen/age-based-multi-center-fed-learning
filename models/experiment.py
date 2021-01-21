@@ -42,7 +42,7 @@ def main():
     test_data_dir = os.path.join('..', 'data', args.dataset, 'data', 'test')   
     users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
     
-    exp_seeds, book_keep = config["exp-seeds"], [0.] * len(exp_seeds)
+    exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])
     
     for j, rnd_sed in enumerate(exp_seeds):
         config["seed"] = rnd_sed

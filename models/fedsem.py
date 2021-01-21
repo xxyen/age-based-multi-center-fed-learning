@@ -143,7 +143,7 @@ class Fedsem_Trainer():
 
         # Create client model, and share params with server model
         tf.reset_default_graph()
-        client_model = ClientModel(seed, *model_params, None)
+        client_model = ClientModel(seed, *model_params)
         num_clusters = config["num-clusters"]
         
         # Create server
