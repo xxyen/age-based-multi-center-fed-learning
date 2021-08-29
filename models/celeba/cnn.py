@@ -6,9 +6,9 @@ from PIL import Image
 
 from model import Model
 
-
+base_dir =  os.path.join(os.path.expanduser('~'), 'leaf')
 IMAGE_SIZE = 84
-IMAGES_DIR = os.path.join('..', 'data', 'celeba', 'data', 'raw', 'img_align_celeba')
+IMAGES_DIR = os.path.join(base_dir, 'data', 'celeba', 'data', 'raw', 'img_align_celeba')
 
 
 class ClientModel(Model):

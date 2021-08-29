@@ -39,8 +39,10 @@ def main():
     args = parse_job_args()
     config = read_yamlconfig(args)
     
-    train_data_dir = os.path.join('..', 'data', args.dataset, 'data', 'train')
-    test_data_dir = os.path.join('..', 'data', args.dataset, 'data', 'test')   
+    # changed 29/08/2021 the follow lines are for google cloud dir
+    base_dir =  os.path.join(os.path.expanduser('~'), 'leaf')
+    train_data_dir = os.path.join(base_dir, 'data', args.dataset, 'data', 'train')
+    test_data_dir = os.path.join(base_dir, 'data', args.dataset, 'data', 'test')   
     users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
     
     exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])
@@ -80,7 +82,7 @@ def main():
         
     finals = np.array(book_keep) * 100
     print(finals)
-    print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
-                                              np.var(finals),
-                                             np.median(finals)))        
+#     print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
+#                                               np.var(finals),
+#                                              np.median(finals)))        
 main()

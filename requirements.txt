@@ -8,4 +8,4 @@ matplotlib
 bokeh
 tqdm
 cmake
-lapsolver=1.1.0
+lapsolver==1.1.0
