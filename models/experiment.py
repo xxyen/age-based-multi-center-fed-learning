@@ -8,7 +8,7 @@ from utils_io import get_job_config
 from utils.model_utils import read_data
 from utils.args import parse_job_args
 
-
+from fedrobust import Fedrobust_Trainer
 from fedsem import Fedsem_Trainer
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
@@ -75,6 +75,10 @@ def main():
             trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
             metric = trainer.begins(config, args)
             trainer.ends() 
+        elif args.experiment == 'fedrobust':
+            trainer = Fedrobust_Trainer(users, groups, train_data, test_data) 
+            metric = trainer.begins(config, args)
+            trainer.ends()            
         else:
             print("Applications not defined. Please check configs directory if the name is right.")
             break

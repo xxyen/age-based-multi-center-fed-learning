@@ -1,0 +1,16 @@
+--- 
+ JOB_ID: "federated-robust-noniid"
+ API_VER: standard
+ PARAMS:
+   num-clusters: 3
+   num-rounds: 20
+   epochs: 5
+   eval-every: 20
+   clients-per-round: 40 
+   batch-size: 32
+   lr: 0.01
+   seed: 514306
+   exp-seeds: 
+     - 374283
+ EXPORT:
+   history-file: ''
