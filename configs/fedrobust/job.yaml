@@ -2,6 +2,7 @@
  JOB_ID: "federated-robust-noniid"
  API_VER: standard
  PARAMS:
+   num-layers: 10
    num-clusters: 3
    num-rounds: 20
    epochs: 5
