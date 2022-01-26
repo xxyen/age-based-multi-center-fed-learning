@@ -214,3 +214,45 @@ class SGDServer(Server):
             self.updates.append((num_samples, update))
 
         return sys_metrics, self.updates    
+
+    class MDLpoisonServer(Server):
+  def __init__(self, client_model, clients, num_agents, agent_scale = 40):
+    self.scale = agent_scale
+    ids = [c.id for c in clients]
+    self.adversaries = random.sample(ids, num_agents)
+    for c in clients:
+      if c.ids in self.adversaries:
+        c.train_data = self.read_adver_agent_data(c.train_data)
+    super(SGDServer, self).__init__(client_model)
+
+  def _read_adver_agent_data(self, train_data):
+    import numpy as np
+    ys = train_data['y']
+    max_v = np.max(ys)
+    new_ys = [random.sample(list(np.arange(max_v)), 1) for y in ys]
+    train_data['y'] = ys
+    return train_data
+
+  def train_model(self, single_center, num_epochs=1, batch_size=10, minibatch=None, clients=None, apply_prox=False):
+    if clients is None:
+        clients = self.selected_clients
+    sys_metrics = {
+        c.id: {BYTES_WRITTEN_KEY: 0,
+                BYTES_READ_KEY: 0,
+                LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
+    for c in clients:
+        if single_center is not None:
+            c.model.set_params(single_center)
+        else:
+            c.model.set_params(self.model)
+        comp, num_samples, update = c.train(num_epochs, batch_size, minibatch, apply_prox)
+        if c.id in self.adversaries:
+            update = update * self.scale
+
+        sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
+        sys_metrics[c.id][BYTES_WRITTEN_KEY] += c.model.size
+        sys_metrics[c.id][LOCAL_COMPUTATIONS_KEY] = comp
+
+        self.updates.append((num_samples, update))
+
+    return sys_metrics, self.updates
