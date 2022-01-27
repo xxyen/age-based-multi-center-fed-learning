@@ -79,7 +79,7 @@ class Model_Poison:
         print('%d Clients in Total' % len(clients)) 
         
         num_agents = config["num-agents"]
-        server = MDLpoisonServer(client_model, clients, num_agents, scale = 40)
+        server = MDLpoisonServer(client_model, clients, num_agents, 50)
         return clients, server, client_model
     
     def save_clients(self, server, num_rounds, dataset):

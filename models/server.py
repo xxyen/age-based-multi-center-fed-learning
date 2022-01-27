@@ -223,9 +223,9 @@ class MDLpoisonServer(Server):
             ids = [c.id for c in clients]
             self.adversaries = random.sample(ids, num_agents)
             for c in clients:
-                if c.ids in self.adversaries:
+                if c.id in self.adversaries:
                     c.train_data = self._read_adver_agent_data(c.train_data)
-            super(SGDServer, self).__init__(client_model)
+            super(MDLpoisonServer, self).__init__(client_model)
 
         def _read_adver_agent_data(self, train_data):
             ys = train_data['y']
@@ -249,7 +249,7 @@ class MDLpoisonServer(Server):
                     c.model.set_params(self.model)
                 comp, num_samples, update = c.train(num_epochs, batch_size, minibatch, apply_prox)
                 if c.id in self.adversaries:
-                    update = update * self.scale
+                    update = [np.multiply(np.array(v), self.scale) for v in update ]
 
                 sys_metrics[c.id][BYTES_READ_KEY] += c.model.size
                 sys_metrics[c.id][BYTES_WRITTEN_KEY] += c.model.size
