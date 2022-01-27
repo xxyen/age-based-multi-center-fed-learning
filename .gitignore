@@ -29,3 +29,4 @@ workernn/
 # IPython
 profile_default/
 ipython_config.py
+models/fedrobust-gui.ipynb

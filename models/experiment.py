@@ -8,13 +8,15 @@ from utils_io import get_job_config
 from utils.model_utils import read_data
 from utils.args import parse_job_args
 
-from fedrobust import Fedrobust_Trainer
+
 from fedsem import Fedsem_Trainer
 from fedavg import Fedavg_Trainer
 from fedprox import Fedprox_Trainer
 from fedsgd import Fedsgd_Trainer
 from fedbayes import Fedbayes_Sing_Trainer
+from fedrobust import Fedrobust_Trainer
 from modelsaver import Model_Saver
+from modelpoison import Model_Poison
 
 def read_yamlconfig(args):
     yaml_file = os.path.join("..", "configs", args.experiment, args.configuration)
@@ -57,6 +59,10 @@ def main():
             trainer = Fedprox_Trainer(users, groups, train_data, test_data)
             metric = trainer.begins(config, args)
             trainer.ends()
+        elif args.experiment == 'fedrobust':
+            trainer = Fedrobust_Trainer(users, groups, train_data, test_data)
+            metric = trainer.begins(config, args)
+            trainer.ends()            
         elif args.experiment == 'fedcluster':
             pass
         elif args.experiment == 'fedsgd':
@@ -75,10 +81,10 @@ def main():
             trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
             metric = trainer.begins(config, args)
             trainer.ends() 
-        elif args.experiment == 'fedrobust':
-            trainer = Fedrobust_Trainer(users, groups, train_data, test_data) 
+        elif args.experiment == 'fedpoison':
+            trainer = Model_Poison(users, groups, train_data, test_data) 
             metric = trainer.begins(config, args)
-            trainer.ends()            
+            trainer.ends()             
         else:
             print("Applications not defined. Please check configs directory if the name is right.")
             break

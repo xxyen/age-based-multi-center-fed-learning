@@ -224,7 +224,7 @@ class MDLpoisonServer(Server):
             self.adversaries = random.sample(ids, num_agents)
             for c in clients:
                 if c.ids in self.adversaries:
-                    c.train_data = self.read_adver_agent_data(c.train_data)
+                    c.train_data = self._read_adver_agent_data(c.train_data)
             super(SGDServer, self).__init__(client_model)
 
         def _read_adver_agent_data(self, train_data):
