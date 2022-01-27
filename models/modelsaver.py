@@ -142,7 +142,8 @@ class Model_Saver:
     #     server_model.close()
         sys_metics = server.train_model(single_center=None, num_epochs=epochs_per_round, batch_size=batch_size, minibatch=None)
         self.save_clients(server, num_rounds, args.dataset)
-        client_model.close()        
+        client_model.close()
+        return 0
     
     def ends(self):
         print("experiment of Modelsaver finished.")
