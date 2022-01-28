@@ -6,7 +6,7 @@ from kbmom.kmedianpp import euclidean_distances, kmedianpp_init
 
 class KbMOM:
     
-    def __init__(self,X,K,nbr_blocks,coef_ech = 6,max_iter = 80,outliers = None, confidence = 0.95, threshold = 0.001,quantile   = 0.5,initial_centers = None,init_type ='km++',averaging_strategy='cumul', n_layers = 1):
+    def __init__(self,X,K,nbr_blocks,coef_ech = 6,max_iter = 40,outliers = None, confidence = 0.95, threshold = 0.001,quantile   = 0.5,initial_centers = None,init_type ='km++',averaging_strategy='cumul', n_layers = 1):
         '''
         # X             : numpy array = contains the data we want to cluster
         # K             : number of clusters
@@ -250,14 +250,13 @@ class KbMOM:
             cumul_centers_ = self.centers
         
         # Main Loop - fitting process
-        print("**** Main Loop Fitting ****")
         if (self.max_iter == 0):
             condition = False
         else:
             condition = True
        
         while condition:
-
+            print('--- Round %d of %d: Training %d Clients ---' % (self.iter+1, self.max_iter, self.coef_ech))
             # sampling
             idx_block = self.sampling_all_blocks_function()
             

@@ -14,6 +14,8 @@
    regul-term: 0.1
    mu: 0.1
    mode: 'no_size'
+   poisoning: on
+   num_agents: 0.05
    exp-seeds: 
      - 374283
      - 693551
@@ -22,4 +24,3 @@
      - 410862
  EXPORT:
    history-file: ''
-

@@ -27,7 +27,7 @@ from mlhead_utilfuncs import get_tensor_from_localmodels,count_num_point_from, l
 
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from mlhead_client import Client
-from server import Server
+from server import Server, MDLpoisonServer
 from model import ServerModel
 from fedprox_optimizer import PerturbedGradientDescent
 
@@ -143,18 +143,25 @@ class Fedsem_Trainer():
 
         # Create client model, and share params with server model
         tf.reset_default_graph()
-        client_model = ClientModel(seed, *model_params)
+        client_model = ClientModel(seed, *model_params, None)
         num_clusters = config["num-clusters"]
         
-        # Create server
-        server = Server(client_model)
+
         
         # Create clients
         _users = self.users
         groups = [[] for _ in _users]
         clients =  [Client(u, g, self.train_data[u], self.test_data[u], client_model) \
                     for u, g in zip(_users, groups)]
-        print('%d Clients in Total' % len(clients))      
+        print('%d Clients in Total' % len(clients)) 
+        
+        if config['poisoning'] == True:
+            num_agents = int(config["num_agents"] * len(clients)) 
+            clients_per_round = config["clients-per-round"]
+            server = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+        else:
+            # Create server
+            server = Server(client_model)            
 
         client_ids, client_groups, all_num_samples = server.get_clients_info(clients)
         # Create our SEM modeling agl

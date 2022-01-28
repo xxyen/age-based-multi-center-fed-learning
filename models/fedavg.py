@@ -8,7 +8,7 @@ import metrics.writer as metrics_writer
 
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from client import Client
-from server import Server
+from server import Server, MDLpoisonServer
 from model import ServerModel
 from utils.constants import DATASETS
 
@@ -73,15 +73,21 @@ class Fedavg_Trainer:
         tf.reset_default_graph()
         client_model = ClientModel(*model_params)
 
-        # Create server
-        server = Server(client_model)
-
         # Create clients
         _users = self.users
         groups = [[] for _ in _users]
         clients =  [Client(u, g, self.train_data[u], self.test_data[u], client_model) \
                     for u, g in zip(_users, groups)]
         print('%d Clients in Total' % len(clients)) 
+        
+        # Create server
+        
+        if config['poisoning'] == True:
+            num_agents = int(config["num_agents"] * len(clients)) 
+            clients_per_round = config["clients-per-round"]
+            server = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+        else:
+            server = Server(client_model)        
         return clients, server, client_model
     
     def begins(self, config, args):

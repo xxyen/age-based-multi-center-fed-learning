@@ -9,6 +9,8 @@
    batch-size: 30
    lr: 0.003
    seed: 514306
+   poisoning: on
+   num_agents: 0.05
    exp-seeds: 
      - 374283
      - 69355

@@ -1,6 +1,5 @@
 pandas
 scipy
-tensorflow==1.15
 Pillow
 matplotlib
 bokeh

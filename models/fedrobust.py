@@ -17,7 +17,7 @@ import metrics.writer as metrics_writer
 
 from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from client import Client
-from server import Server
+from server import Server, MDLpoisonServer
 from model import ServerModel
 from utils.constants import DATASETS
 from robust_main import KbMOM
@@ -87,9 +87,7 @@ class Fedrobust_Trainer:
         tf.reset_default_graph()
         client_model = ClientModel(config["seed"], *model_params)
 
-        # Create server
-        server_ = Server(client_model)
-        self.Server = server_
+
         self.config = config
 
         # Create clients
@@ -99,6 +97,15 @@ class Fedrobust_Trainer:
                     for u, g in zip(_users, groups)]
         print('%d Clients in Total' % len(clients)) 
         self.all_clients = clients
+        
+        if config['poisoning'] == True:
+            num_agents = int(config["num_agents"] * len(clients)) 
+            clients_per_round = config["clients-per-round"]            
+            server_ = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+        else:
+            # Create server
+            server_ = Server(client_model)
+        self.Server = server_            
         return clients, server_, client_model
     
     def fed_train(self, init_prms, client_in_block):
@@ -141,7 +148,7 @@ class Fedrobust_Trainer:
         epochs_per_round = config['epochs']
         batch_size = config['batch-size']
         clients_per_round = config["clients-per-round"]
-        n_layers = config["num-layers"]
+        n_layers = config[args.dataset + "-num-layers"]
         
         all_ids, all_groups, all_num_samples = server.get_clients_info(clients)
         # train all clients one round 

@@ -35,6 +35,16 @@ def read_yamlconfig(args):
     clients_per_round = params['clients-per-round']
     print("config clients per round: ", clients_per_round)
     
+    if ('poisoning' not in params.keys()):
+        poisoning = False
+        poi_agents = 0
+    else:
+        poisoning = True
+        poi_agents = int(params['num_agents'])
+    print("config poisoning: ", poisoning)
+    print("config num agents: ", poi_agents)
+    params['poisoning'] = poisoning
+    
     return params
 
 def main():
