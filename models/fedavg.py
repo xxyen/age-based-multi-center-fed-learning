@@ -12,6 +12,8 @@ from server import Server, MDLpoisonServer
 from model import ServerModel
 from utils.constants import DATASETS
 
+from mlhead_utilfuncs import log_history, save_historyfile
+
 
 STAT_METRICS_PATH = 'metrics/stat_metrics.csv'
 SYS_METRICS_PATH = 'metrics/sys_metrics.csv'
@@ -120,6 +122,7 @@ class Fedavg_Trainer:
             if (i + 1) % eval_every == 0 or (i + 1) == num_rounds:
                 stat_metrics = server.test_model(clients)
                 micro_acc = print_metrics(stat_metrics, all_num_samples)
+                log_history(i+1, micro_acc, micro_acc, c_ids)
 
         # Save server model
     #     save_model(server_model, args.dataset, shared_model)
@@ -130,5 +133,6 @@ class Fedavg_Trainer:
         return micro_acc
     
     def ends(self):
+        save_historyfile()
         print("-" * 3, "End of Fedavg exerpiment.", "-" * 3)
         return

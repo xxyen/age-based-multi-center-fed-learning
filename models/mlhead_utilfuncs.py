@@ -3,12 +3,14 @@ import os
 import tensorflow as tf
 import csv
 
+from datetime import datetime
+from dateutil import tz
 from tensorflow.python import pywrap_tensorflow
 from utils.args import parse_args
 
 import pandas as pd
 
-CUSTOM_METRIC_PATH = 'metrics/history.json'
+CUSTOM_METRIC_PATH = 'metrics/history'
 
 rounds = []
 his_acc = []
@@ -92,5 +94,8 @@ def log_history(my_rounds, micro_acc, macro_acc, client_list):
     
 def save_historyfile():
     df = pd.DataFrame({'round': rounds, 'micro': his_acc, 'macro': his_mcoacc, 'assignment': his_assignment})
-    df.to_json(CUSTOM_METRIC_PATH)
+    to_zone = tz.gettz('Australia/Canberra')
+    time = str(datetime.now(to_zone).strftime("%d/%m/%Y_%H:%M:%S"))
+    f = CUSTOM_METRIC_PATH + "_" + time + ".csv"
+    df.to_csv(f)
     

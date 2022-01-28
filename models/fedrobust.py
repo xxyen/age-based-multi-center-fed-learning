@@ -22,6 +22,8 @@ from model import ServerModel
 from utils.constants import DATASETS
 from robust_main import KbMOM
 
+from mlhead_utilfuncs import log_history, save_historyfile
+
 
 STAT_METRICS_PATH = 'metrics/stat_metrics.csv'
 SYS_METRICS_PATH = 'metrics/sys_metrics.csv'
@@ -64,6 +66,8 @@ class Fedrobust_Trainer:
         self.config = []
         self.server = []
         self.all_clients = []
+        self.iter = 0
+        self.acc = 0.0
 
         
     def model_config(self, config, dataset, my_model):   
@@ -134,6 +138,9 @@ class Fedrobust_Trainer:
             c_ids, c_groups, c_num_samples = self.Server.get_clients_info(cl_within_clus)
             accs_[k] = print_metrics(stat_metrics, c_num_samples)
         print("--- Acc: ",  np.average(accs_), " ---")
+        log_history(self.iter+1, np.average(accs_), np.average(accs_), cl_within_clus)
+        self.iter += 1
+        self.acc = np.average(accs_)
     
     def begins(self, config, args):
         
@@ -166,8 +173,9 @@ class Fedrobust_Trainer:
         #clients, server, client_model = self.model_config(config, args.dataset, 'cnn_prox')  
         centroids = robust_helper.predict(all_cl_models)
         self.fed_test(centroids, robust_helper)
-        return 0.5
+        return self.acc
     
     def ends(self):
+        save_historyfile()
         print("experiment of Fed Robust is finished.")
         return
