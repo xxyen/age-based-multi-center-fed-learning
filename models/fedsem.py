@@ -138,12 +138,13 @@ class Fedsem_Trainer():
         model_params = MODEL_PARAMS[model_path]
         if config["lr"] != -1:
             model_params_list = list(model_params)
-            model_params_list[0] = config["lr"]
+            model_params_list.insert(0, config["seed"])
+            model_params_list[1] = config["lr"]
             model_params = tuple(model_params_list)
 
         # Create client model, and share params with server model
         tf.reset_default_graph()
-        client_model = ClientModel(seed, *model_params, None)
+        client_model = ClientModel(*model_params)
         num_clusters = config["num-clusters"]
         
 
@@ -158,7 +159,7 @@ class Fedsem_Trainer():
         if config['poisoning'] == True:
             num_agents = int(config["num_agents"] * len(clients)) 
             clients_per_round = config["clients-per-round"]
-            server = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+            server = MDLpoisonServer(client_model, clients, num_agents, model_params[2], clients_per_round)
         else:
             # Create server
             server = Server(client_model)            

@@ -4,11 +4,12 @@
  PARAMS:
    femnist-num-layers: 6
    celeba-num-layers: 24
+   synthetic-num-layers: 0
    num-clusters: 3
-   num-rounds: 20
+   num-rounds: 80
    epochs: 3
    eval-every: 20
-   clients-per-round: 40 
+   clients-per-round: 6
    batch-size: 20
    num-blocks: 50
    coff-each: 0.4

@@ -86,10 +86,11 @@ class Fedrobust_Trainer:
         # Create 2 models
         model_params = MODEL_PARAMS[model_path]
         model_params_list = list(model_params)
-        model_params_list[0] = config["lr"]
+        model_params_list.insert(0, config["seed"])
+        model_params_list[1] = config["lr"]
         model_params = tuple(model_params_list)
         tf.reset_default_graph()
-        client_model = ClientModel(config["seed"], *model_params)
+        client_model = ClientModel(*model_params)
 
 
         self.config = config
@@ -105,7 +106,7 @@ class Fedrobust_Trainer:
         if config['poisoning'] == True:
             num_agents = int(config["num_agents"] * len(clients)) 
             clients_per_round = config["clients-per-round"]            
-            server_ = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+            server_ = MDLpoisonServer(client_model, clients, num_agents, model_params_list[2], clients_per_round)
         else:
             # Create server
             server_ = Server(client_model)

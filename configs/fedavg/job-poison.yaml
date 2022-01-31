@@ -13,7 +13,5 @@
    num_agents: 0.05
    exp-seeds: 
      - 374283
-     - 69355
-     - 322778
  EXPORT:
    history-file: ''

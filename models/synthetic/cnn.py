@@ -33,7 +33,7 @@ class ClientModel(Model):
         correct_pred = tf.equal(predictions, labels)
         eval_metric_ops = tf.count_nonzero(correct_pred)
         
-        return features, labels, train_op, eval_metric_ops, tf.reduce_mean(loss)
+        return features, labels, train_op, eval_metric_ops, tf.reduce_mean(loss), correct_pred, None
 
     def process_x(self, raw_x_batch):
         return np.array(raw_x_batch)

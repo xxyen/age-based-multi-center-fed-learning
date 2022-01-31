@@ -4,7 +4,7 @@
  PARAMS:
    num-clusters: 4
    update-center-every: 10
-   num-rounds: 60
+   num-rounds: 80
    epochs: 10
    eval-every: 10
    clients-per-round: 3 

@@ -218,18 +218,18 @@ class SGDServer(Server):
 
 class MDLpoisonServer(Server):
     
-        def __init__(self, client_model, clients, num_agents, agent_scale = 40):
+        def __init__(self, client_model, clients, num_agents, num_classes, agent_scale = 40):
             self.scale = agent_scale
             ids = [c.id for c in clients]
             self.adversaries = random.sample(ids, num_agents)
             for c in clients:
                 if c.id in self.adversaries:
-                    c.train_data = self._read_adver_agent_data(c.train_data)
+                    c.train_data = self._read_adver_agent_data(c.train_data, num_classes)
             super(MDLpoisonServer, self).__init__(client_model)
 
-        def _read_adver_agent_data(self, train_data):
+        def _read_adver_agent_data(self, train_data, num_classes):
             ys = train_data['y']
-            max_v = np.max(ys)
+            max_v = num_classes
             new_ys = [random.sample(list(np.arange(max_v)), 1) for y in ys]
             train_data['y'] = ys
             return train_data

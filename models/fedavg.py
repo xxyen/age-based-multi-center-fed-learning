@@ -87,7 +87,7 @@ class Fedavg_Trainer:
         if config['poisoning'] == True:
             num_agents = int(config["num_agents"] * len(clients)) 
             clients_per_round = config["clients-per-round"]
-            server = MDLpoisonServer(client_model, clients, num_agents, clients_per_round)
+            server = MDLpoisonServer(client_model, clients, num_agents, model_params_list[2], clients_per_round)
         else:
             server = Server(client_model)        
         return clients, server, client_model

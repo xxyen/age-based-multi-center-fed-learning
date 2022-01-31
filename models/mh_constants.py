@@ -3,7 +3,8 @@ MODEL_PARAMS = {
     'femnist.cnn_prox': (200, 62), # input_dim, num_hiddens, output_dim, layer_index
     'shakespeare.stacked_lstm': (2048, 10, 5000, -2), # input_dim, num_hiddens, output_dim, layer_index
     'celeba.cnn':(14112, 2),
-    'celeba.cnn_prox':(14112, 2)
+    'celeba.cnn_prox':(14112, 2),
+    'synthetic.cnn': (60, 5)
 }
 
 VARIABLE_PARAMS = {
@@ -11,6 +12,7 @@ VARIABLE_PARAMS = {
     'femnist.cnn_prox': "dense_1/kernel",
 	'shakespeare.stacked_lstm': "dense/kernel",
     'celeba.cnn':"dense/kernel",
-    'celeba.cnn_prox':"dense/kernel"
+    'celeba.cnn_prox':"dense/kernel",
+    'synthetic.cnn': "dense/kernel"
 }
 
