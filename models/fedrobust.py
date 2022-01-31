@@ -156,6 +156,8 @@ class Fedrobust_Trainer:
         batch_size = config['batch-size']
         clients_per_round = config["clients-per-round"]
         n_layers = config[args.dataset + "-num-layers"]
+        n_blocks = config["num-blocks"]
+        coef_ech = config["coff-each"]
         
         all_ids, all_groups, all_num_samples = server.get_clients_info(clients)
         # train all clients one round 
@@ -165,7 +167,7 @@ class Fedrobust_Trainer:
         print("last layer of a model is:", all_cl_models[0][n_layers].shape)
             
         # self.all_cl_models, labels_true = make_blobs(n_samples=3000, centers=centers, cluster_std=0.7)
-        robust_helper = KbMOM(X = all_cl_models, K = K, nbr_blocks = 40, coef_ech = int(len(clients) * 0.3) , quantile=0.5, init_type='kmedianpp', n_layers = n_layers)
+        robust_helper = KbMOM(X = all_cl_models, K = K, max_iter = num_rounds, nbr_blocks = n_blocks, coef_ech = int(len(clients) * coef_ech) , quantile=0.5, init_type='kmedianpp', n_layers = n_layers)
         robust_helper.set_E_func(self.fed_train)
         robust_helper.set_M_func(self.fed_update)
         print("*** Robust algorithm training started ***")

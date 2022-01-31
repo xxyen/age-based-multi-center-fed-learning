@@ -95,7 +95,7 @@ def log_history(my_rounds, micro_acc, macro_acc, client_list):
 def save_historyfile():
     df = pd.DataFrame({'round': rounds, 'micro': his_acc, 'macro': his_mcoacc, 'assignment': his_assignment})
     to_zone = tz.gettz('Australia/Canberra')
-    time = str(datetime.now(to_zone).strftime("%d/%m/%Y_%H:%M:%S"))
+    time = str(datetime.now(to_zone).strftime("%d|%m|%Y_%H:%M:%S"))
     f = CUSTOM_METRIC_PATH + "_" + time + ".csv"
     df.to_csv(f)
     
