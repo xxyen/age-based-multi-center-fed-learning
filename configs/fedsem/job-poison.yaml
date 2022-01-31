@@ -17,10 +17,6 @@
    poisoning: on
    num_agents: 0.05
    exp-seeds: 
-     - 374283
-     - 693551
      - 322778
-     - 269864
-     - 410862
  EXPORT:
    history-file: ''

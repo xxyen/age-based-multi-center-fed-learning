@@ -15,11 +15,7 @@
    mu: 0.1
    mode: 'no_size'
    exp-seeds: 
-     - 374283
-     - 693551
      - 322778
-     - 269864
-     - 410862
  EXPORT:
    history-file: ''
 

@@ -4,12 +4,12 @@
  PARAMS:
    femnist-num-layers: 6
    celeba-num-layers: 12
-   num-clusters: 3
-   num-rounds: 20
-   epochs: 3
+   num-clusters: 4
+   num-rounds: 60
+   epochs: 10
    eval-every: 20
-   clients-per-round: 40 
-   batch-size: 20
+   clients-per-round: 30 
+   batch-size: 10
    lr: 0.01
    seed: 514306
    poisoning: on
