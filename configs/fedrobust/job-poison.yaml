@@ -6,7 +6,7 @@
    celeba-num-layers: 24
    synthetic-num-layers: 0
    num-clusters: 3
-   num-rounds: 20
+   num-rounds: 80
    epochs: 3
    eval-every: 20
    clients-per-round: 6 
@@ -16,7 +16,7 @@
    lr: 0.01
    seed: 514306
    poisoning: on
-   num_agents: 0.05
+   num_agents: 0.03
    exp-seeds: 
      - 374283
  EXPORT:
