@@ -254,7 +254,7 @@ class Fedsem_Trainer():
             if not num_clusters == -1 and not k == (num_rounds -1) and (k + 1) % update_head_every == 0:
                 c_wts = get_tensor_from_localmodels(joined_clients,
                                                   c_wts,
-                                                  self.mlhead_cluster.variable, self.clients[0].model)
+                                                  self.mlhead_cluster.variable, client_model)
                 learned_cluster = self.clustering_function(c_wts) # cwts is N (clients) x x_dimensions
                 joined_clients.clear()
                 print("----- center update performed -----")
