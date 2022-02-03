@@ -35,7 +35,7 @@ class ClientProxModel(Model):
             activation=tf.nn.relu)
         pool2 = tf.layers.max_pooling2d(inputs=conv2, pool_size=[2, 2], strides=2)
         pool2_flat = tf.reshape(pool2, [-1, 7 * 7 * 64])
-        dense = tf.layers.dense(inputs=pool2_flat, units=200, activation=tf.nn.relu)
+        dense = tf.layers.dense(inputs=pool2_flat, units=248, activation=tf.nn.relu)
         logits = tf.layers.dense(inputs=dense, units=self.num_classes)
         predictions = {
           "classes": tf.argmax(input=logits, axis=1),
