@@ -99,3 +99,8 @@ def save_historyfile():
     f = CUSTOM_METRIC_PATH + "_" + time + ".csv"
     df.to_csv(f)
     
+def save_clustereva_file(exp, df):
+    to_zone = tz.gettz('Australia/Canberra')
+    time = str(datetime.now(to_zone).strftime("%d|%m|%Y_%H:%M:%S"))
+    f = exp + "_clustering" + "_" + time + ".csv"
+    df.to_csv(f)    

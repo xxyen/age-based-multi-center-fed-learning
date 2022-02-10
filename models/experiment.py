@@ -3,10 +3,12 @@ import os
 import sys
 import numpy as np
 import time
+import pandas as pd
 
 from utils_io import get_job_config
 from utils.model_utils import read_data
 from utils.args import parse_job_args
+from mlhead_utilfuncs import save_clustereva_file
 
 
 from fedsem import Fedsem_Trainer
@@ -58,6 +60,8 @@ def main():
     users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
     
     exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])
+    metrics_list = {"BIC": [], "DB_score": []}
+    config["benchmark"] = 0
     
     for j, rnd_sed in enumerate(exp_seeds):
         config["seed"] = rnd_sed
@@ -94,7 +98,14 @@ def main():
         elif args.experiment == 'fedpoison':
             trainer = Model_Poison(users, groups, train_data, test_data) 
             metric = trainer.begins(config, args)
-            trainer.ends()             
+            trainer.ends()
+        elif args.experiment == 'fedrobust_benchmark':
+            config["benchmark"] = 1
+            trainer = Fedrobust_Trainer(users, groups, train_data, test_data)
+            metric = trainer.begins(config, args)
+            trainer.ends()
+            metrics_list["bic"].append(trainer._bic)
+            metrics_list["db_score"].append(trainer._db_score)
         else:
             print("Applications not defined. Please check configs directory if the name is right.")
             break
@@ -102,6 +113,10 @@ def main():
         
     finals = np.array(book_keep) * 100
     print(finals)
+    
+    if args.experiment in ["fedrobust_benchmark", "fedsem_benchmark"]:
+        df = pd.DataFrame(metrics_list)
+        save_clustereva_file(args.experiment, df)
 #     print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
 #                                               np.var(finals),
 #                                              np.median(finals)))        

@@ -1,0 +1,21 @@
+--- 
+ JOB_ID: "federated-robust-noniid"
+ API_VER: standard
+ PARAMS:
+   femnist-num-layers: 6
+   celeba-num-layers: 24
+   synthetic-num-layers: 0
+   num-clusters: 3
+   num-rounds: 80
+   epochs: 3
+   eval-every: 20
+   clients-per-round: 6
+   batch-size: 20
+   num-blocks: 50
+   coff-each: 0.4
+   lr: 0.01
+   seed: 514306
+   exp-seeds: 
+     - 374283
+ EXPORT:
+   history-file: ''

@@ -68,6 +68,8 @@ class Fedrobust_Trainer:
         self.all_clients = []
         self.iter = 0
         self.acc = 0.0
+        self._bic = 0.0
+        self._db_score = 0.0
 
         
     def model_config(self, config, dataset, my_model):   
@@ -142,7 +144,15 @@ class Fedrobust_Trainer:
         log_history(self.iter+1, np.average(accs_), np.average(accs_), cl_within_clus)
         self.iter += 1
         self.acc = np.average(accs_)
-    
+
+    def evaluate(self, rbclf, config):
+        print("Evaluation metrics below: ")
+        bic = rbclf.BIC()
+        db_score = rbclf.DB_score()
+        print("BIC: ", bic)
+        print("DB_score:", db_score)
+        return (bic, db_score)
+        
     def begins(self, config, args):
         
         def shout(text):
@@ -176,6 +186,11 @@ class Fedrobust_Trainer:
         #clients, server, client_model = self.model_config(config, args.dataset, 'cnn_prox')  
         centroids = robust_helper.predict(all_cl_models)
         self.fed_test(centroids, robust_helper)
+        
+        if config["benchmark"] == 1:
+            vals = self.evaluate(robust_helper, config)
+            self._bic = vals[0]
+            self._db_score = vals[1]
         return self.acc
     
     def ends(self):

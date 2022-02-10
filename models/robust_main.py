@@ -3,6 +3,8 @@ import random
 from math import modf, log
 from scipy.spatial.distance import cdist
 from kbmom.kmedianpp import euclidean_distances, kmedianpp_init
+from kbmom.utils import loglikelihood, BIC
+from sklearn.metrics import davies_bouldin_score
 
 class KbMOM:
     
@@ -383,4 +385,12 @@ class KbMOM:
         centers_ = np.array(clster).mean(axis = 0).reshape(1, -1)
         return cdist(np.array(clster), centers_,'sqeuclidean').sum()
         
-        
+    def loglik(self):
+        return loglikelihood(self.X, self.centers)
+
+    def BIC(self):
+        return BIC(self.X, self.centers)
+
+    def DB_score(self):
+        lbl = self.predict(self.X)
+        return davies_bouldin_score(self.X, lbl)
