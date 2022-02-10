@@ -391,12 +391,17 @@ class KbMOM:
         x = list(map(lambda x: x.flatten(), x_transformed))
         return np.array(x)
     
+    def npcenters(self):
+        x_tran = self.last_layer(self.centers)
+        x = list(map(lambda x: x.flatten(), x_tran))
+        return np.array(x)
+    
     def loglik(self):
-        return loglikelihood(self.npx(), self.centers)
+        return loglikelihood(self.npx(), self.npcenters())
 
     def BIC(self):
-        return BIC(self.npx(), self.centers)
+        return BIC(self.npx(), self.npcenters())
 
     def DB_score(self):
-        lbl = self.predict(self.npx())
+        lbl = self.predict(self.X)
         return davies_bouldin_score(self.npx(), lbl)
