@@ -384,13 +384,19 @@ class KbMOM:
                 
         centers_ = np.array(clster).mean(axis = 0).reshape(1, -1)
         return cdist(np.array(clster), centers_,'sqeuclidean').sum()
+    
+    def npx(self):
+        x_transformed = self.last_layer(self.X)
         
+        x = list(map(lambda x: x.flatten(), x_transformed))
+        return np.array(x)
+    
     def loglik(self):
-        return loglikelihood(self.X, self.centers)
+        return loglikelihood(self.npx(), self.centers)
 
     def BIC(self):
-        return BIC(self.X, self.centers)
+        return BIC(self.npx(), self.centers)
 
     def DB_score(self):
-        lbl = self.predict(self.X)
-        return davies_bouldin_score(self.X, lbl)
+        lbl = self.predict(self.npx())
+        return davies_bouldin_score(self.npx(), lbl)
