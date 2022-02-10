@@ -60,7 +60,7 @@ def main():
     users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
     
     exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])
-    metrics_list = {"BIC": [], "DB_score": []}
+    metrics_list = {"bic": [], "db_score": []}
     config["benchmark"] = 0
     
     for j, rnd_sed in enumerate(exp_seeds):
