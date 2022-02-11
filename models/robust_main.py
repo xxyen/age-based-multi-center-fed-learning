@@ -4,7 +4,7 @@ from math import modf, log
 from scipy.spatial.distance import cdist
 from kbmom.kmedianpp import euclidean_distances, kmedianpp_init
 from kbmom.utils import loglikelihood, BIC
-from sklearn.metrics import davies_bouldin_score
+from sklearn.metrics import davies_bouldin_score, silhouette_score
 
 class KbMOM:
     
@@ -401,6 +401,10 @@ class KbMOM:
 
     def BIC(self):
         return BIC(self.npx(), self.npcenters())
+    
+    def sil_score(self):
+        lbl = self.predict(self.X)
+        return silhouette_score(self.npx(), lbl, metric='euclidean')
 
     def DB_score(self):
         lbl = self.predict(self.X)

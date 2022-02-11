@@ -147,7 +147,7 @@ class Fedrobust_Trainer:
 
     def evaluate(self, rbclf, config):
         print("Evaluation metrics below: ")
-        bic = rbclf.BIC()
+        bic = rbclf.sil_score()
         db_score = rbclf.DB_score()
         print("BIC: ", bic)
         print("DB_score:", db_score)

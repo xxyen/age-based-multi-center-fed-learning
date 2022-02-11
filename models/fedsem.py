@@ -31,7 +31,7 @@ from server import Server, MDLpoisonServer
 from model import ServerModel
 from fedprox_optimizer import PerturbedGradientDescent
 from kbmom.utils import loglikelihood, BIC
-from sklearn.metrics import davies_bouldin_score
+from sklearn.metrics import davies_bouldin_score, silhouette_score
 
 
 def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack_list, client_list):
@@ -130,11 +130,11 @@ class Fedsem_Trainer():
         centers, label = self.mlhead_cluster._clusterModel.assign_clusters(data)
         print("Evaluation metrics below: ")
         
-        bic = BIC(data, centers)
+        _sil_score = silhouette_score(data, label, metric='euclidean')
         db_score = davies_bouldin_score(data, label)
-        print("BIC: ", bic)
+        print("BIC: ", _sil_score)
         print("DB_score:", db_score)       
-        return (bic, db_score)
+        return (_sil_score, db_score)
         
     
     def model_config(self, config, dataset, my_model, seed):
