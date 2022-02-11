@@ -30,6 +30,8 @@ from mlhead_client import Client
 from server import Server, MDLpoisonServer
 from model import ServerModel
 from fedprox_optimizer import PerturbedGradientDescent
+from kbmom.utils import loglikelihood, BIC
+from sklearn.metrics import davies_bouldin_score
 
 
 def mlhead_print_totloss(k, eval_every, rounds, prefix, accuracy, cluster, stack_list, client_list):
@@ -90,6 +92,8 @@ class Fedsem_Trainer():
         self.train_data = train_data
         self.test_data = test_data
         self.last_round = 0.
+        self._bic = 0.
+        self._db_score = 0.
 
 
     def center_init(self, num_clusters, client_model):
@@ -120,6 +124,18 @@ class Fedsem_Trainer():
         end_time = time.time() - start_time
         self.kmeans_cost.append(end_time) 
         return learned_cluster
+    
+    def evaluate(self, points):
+        data = [points[k] for k in points]
+        centers, label = self.mlhead_cluster._clusterModel.assign_clusters(data)
+        print("Evaluation metrics below: ")
+        
+        bic = BIC(data, centers)
+        db_score = davies_bouldin_score(data, label)
+        print("BIC: ", bic)
+        print("DB_score:", db_score)       
+        return (bic, db_score)
+        
     
     def model_config(self, config, dataset, my_model, seed):
         np.random.seed(seed)
@@ -261,6 +277,11 @@ class Fedsem_Trainer():
                 prev_score = len(c_wts)
                 
         client_model.close()
+        
+        if config["benchmark"] == 1:
+            vals = self.evaluate(c_wts)
+            self._bic = vals[0]
+            self._db_score = vals[1]        
         return self.last_round
                 
 

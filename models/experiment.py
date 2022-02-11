@@ -106,6 +106,13 @@ def main():
             trainer.ends()
             metrics_list["bic"].append(trainer._bic)
             metrics_list["db_score"].append(trainer._db_score)
+        elif args.experiment == 'fedsem_benchmark':
+            config["benchmark"] = 1
+            trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
+            metric = trainer.begins(config, args)
+            trainer.ends() 
+            metrics_list["bic"].append(trainer._bic)
+            metrics_list["db_score"].append(trainer._db_score)
         else:
             print("Applications not defined. Please check configs directory if the name is right.")
             break

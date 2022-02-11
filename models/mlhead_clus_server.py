@@ -158,7 +158,7 @@ class Mlhead_Clus_Server:
         return c_dict
 
     def run_clustering(self, data):
-        labels = self._clusterModel.assign_clusters([data[k] for k in data] )
+        centers, labels = self._clusterModel.assign_clusters([data[k] for k in data] )
         return self.eval_clustermembership(labels)
         
     def train_kmeans(self, prev_score, data):

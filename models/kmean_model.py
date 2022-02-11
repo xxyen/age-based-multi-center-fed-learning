@@ -45,5 +45,5 @@ class KmeanModel():
                 self.first = False
             for i in range(iteration):
                 centroids, y = self.sess.run([self.train_ops, self.y], feed_dict={self.X:data})  
-            return y
+            return centroids, y
     
