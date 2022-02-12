@@ -15,7 +15,7 @@
    mu: 0.1
    mode: 'no_size'
    poisoning: on
-   num_agents: 0.1
+   num_agents: 0.25
    exp-seeds: 
     - 576993
     - 864315

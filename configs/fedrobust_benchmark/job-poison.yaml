@@ -16,7 +16,7 @@
    lr: 0.01
    seed: 514306
    poisoning: on
-   num_agents: 0.10
+   num_agents: 0.25
    exp-seeds: 
         - 5717765
         - 592043
