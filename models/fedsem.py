@@ -127,7 +127,7 @@ class Fedsem_Trainer():
     
     def evaluate(self, points):
         data = [points[k] for k in points]
-        centers, label = self.mlhead_cluster._clusterModel.assign_clusters(data)
+        label = self.mlhead_cluster._clusterModel.assign_clusters(data)
         print("Evaluation metrics below: ")
         
         _sil_score = silhouette_score(data, label, metric='euclidean')
