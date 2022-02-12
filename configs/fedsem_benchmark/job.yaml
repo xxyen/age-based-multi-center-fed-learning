@@ -2,6 +2,9 @@
  JOB_ID: "fed-sem-noniid"
  API_VER: standard
  PARAMS:
+   femnist-num-layers: 6
+   celeba-num-layers: 24
+   synthetic-num-layers: 0 
    num-clusters: 5
    update-center-every: 2
    num-rounds: 80

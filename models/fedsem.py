@@ -205,6 +205,7 @@ class Fedsem_Trainer():
         batch_size = config['batch-size']
         clients_per_round = config["clients-per-round"]
         update_head_every = config['update-center-every']
+        n_layers = config[args.dataset + "-num-layers"]
         
         print("----- Multi-center Federated Training -----")
         prev_score = None
@@ -268,7 +269,7 @@ class Fedsem_Trainer():
 
             # Update the center point when k = local training * a mulitplier
             if not num_clusters == -1 and not k == (num_rounds -1) and (k + 1) % update_head_every == 0:
-                tmp = {cli_id: joined_clients[cli_id][24].flatten()  for cli_id in joined_clients}
+                tmp = {cli_id: joined_clients[cli_id][n_layers].flatten()  for cli_id in joined_clients}
                 c_wts.update(tmp)
                 learned_cluster = self.clustering_function(c_wts) # cwts is N (clients) x x_dimensions
                 joined_clients.clear()

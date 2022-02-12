@@ -2,6 +2,9 @@
  JOB_ID: "fedem-noniid"
  API_VER: standard
  PARAMS:
+   femnist-num-layers: 6
+   celeba-num-layers: 24
+   synthetic-num-layers: 0 
    num-clusters: 5
    update-center-every: 2
    num-rounds: 80
@@ -15,7 +18,7 @@
    mu: 0.1
    mode: 'no_size'
    poisoning: on
-   num_agents: 0.1
+   num_agents: 0.25
    exp-seeds: 
     - 576993
     - 864315
