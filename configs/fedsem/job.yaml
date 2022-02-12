@@ -3,7 +3,7 @@
  API_VER: standard
  PARAMS:
    num-clusters: 5
-   update-center-every: 2
+   update-center-every: 1
    num-rounds: 80
    epochs: 10
    eval-every: 2
