@@ -293,6 +293,9 @@ class KbMOM:
 #                     cumul_centers_  = (self.centers / (self.iter - decay)) + (self.iter-decay - 1)/(self.iter - decay) * cumul_centers_
 #                     self.centers = cumul_centers_
 
+                # run test
+                label = self.predict(self.X)
+                self.T_func(label, self)
                 self.iter += 1
                 if self.iter>=self.max_iter:
                     condition = False
@@ -362,6 +365,9 @@ class KbMOM:
         
     def set_M_func(self, func):
         self.M_func = func
+        
+    def set_T_func(self, func):
+        self.T_func = func
         
     def last_layer(self, X_list):
         return [x[self.n_layers] for x in X_list]

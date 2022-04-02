@@ -181,6 +181,7 @@ class Fedrobust_Trainer:
         robust_helper = KbMOM(X = all_cl_models, K = K, max_iter = num_rounds, nbr_blocks = n_blocks, coef_ech = int(len(clients) * coef_ech) , quantile=0.5, init_type='kmedianpp', n_layers = n_layers)
         robust_helper.set_E_func(self.fed_train)
         robust_helper.set_M_func(self.fed_update)
+        robust_helper.set_T_func(self.fed_test)
         print("*** Robust algorithm training started ***")
         robust_helper.fit(all_cl_models)
         #clients, server, client_model = self.model_config(config, args.dataset, 'cnn_prox')  
