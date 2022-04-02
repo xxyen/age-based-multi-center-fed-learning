@@ -4,8 +4,8 @@
  PARAMS:
    num-rounds: 100
    epochs: 10
-   eval-every: 10
-   clients-per-round: 20 
+   eval-every: 1
+   clients-per-round: 15 
    batch-size: 10
    lr: 0.01
    seed: 514306

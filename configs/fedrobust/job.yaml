@@ -6,11 +6,11 @@
    celeba-num-layers: 24
    synthetic-num-layers: 0
    num-clusters: 3
-   num-rounds: 80
-   epochs: 3
+   num-rounds: 100
+   epochs: 10
    eval-every: 20
-   clients-per-round: 6
-   batch-size: 20
+   clients-per-round: 15
+   batch-size: 10
    num-blocks: 50
    coff-each: 0.4
    lr: 0.01
