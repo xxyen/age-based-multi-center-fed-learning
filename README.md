@@ -1,12 +1,13 @@
 # multi-center-fed-learning: A robust version of multi-center FML
 
 ## Resources
-Please technical details for this paper: [Multi-center Federated Learning](https://arxiv.org/abs/2005.01026)
+Please find technical details for this paper: [Multi-center Federated Learning](https://arxiv.org/abs/2005.01026), Robust version for this paper: [Robust Clustered Federated Learning](APWeb-WAIM)
 
 
 ## Datasets
 Femnist
 Celeba
+Synthetic
 
 ## Notes
 
