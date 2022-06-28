@@ -228,10 +228,13 @@ class MDLpoisonServer(Server):
             super(MDLpoisonServer, self).__init__(client_model)
 
         def _read_adver_agent_data(self, train_data, num_classes):
+            # random some sample then replace the true label
+            # TODO the random value is possible to be the true label
             ys = train_data['y']
             max_v = num_classes
-            new_ys = [random.sample(list(np.arange(max_v)), 1) for y in ys]
-            train_data['y'] = ys
+            ran_ys = np.random.rand(len(ys)) * max_v
+            new_ys = ran_ys.astype(int)
+            train_data['y'] = new_ys
             return train_data
 
   
