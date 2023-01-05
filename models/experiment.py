@@ -47,8 +47,6 @@ def main():
     args = parse_job_args()
     config = read_yamlconfig(args)
     
-    # changed 29/08/2021 the follow lines are for google cloud dir
-    base_dir =  os.path.join(os.path.expanduser('~'), 'autodl-tmp', 'fedsem')
     users, groups, train_data, test_data = read_data()
     
     exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])

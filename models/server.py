@@ -59,9 +59,16 @@ class Server:
             c.id: {BYTES_WRITTEN_KEY: 0,
                    BYTES_READ_KEY: 0,
                    LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
-        #for c in all_clients:
-            #if single_center is None:
-                #c.model.set_params(self.model)
+        # server sends weights to all clients
+        '''
+        for c in all_clients:
+            if single_center is None:
+                c.model.set_params(self.model)
+        for c in clients:
+            if single_center is not None:
+                c.model.set_params(single_center)
+        '''
+        # servier sends weights to selected clients
         for c in clients:
             if single_center is not None:
                 c.model.set_params(single_center)
