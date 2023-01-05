@@ -12,3 +12,6 @@ MNIST: 40 clients, and each client has only two numbers
 - Install the libraries listed in ```requirements.txt```
     - I.e. with pip: run ```pip install -r requirements.txt```
 - ```models``` directory contains instructions on running baseline reference implementations
+
+## Reference
+[multi-center-fed-learning](https://github.com/mingxuts/multi-center-fed-learning)
