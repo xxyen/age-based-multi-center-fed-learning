@@ -12,6 +12,7 @@ class Client:
         self.train_data = train_data
         self.eval_data = eval_data
         self.write_path = write_path
+        self.age = 0
 
     def train(self, num_epochs=1, batch_size=10, minibatch=None, write_file=False):
         """Trains on self.model using the client's train_data.

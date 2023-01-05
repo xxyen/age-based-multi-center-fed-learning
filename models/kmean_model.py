@@ -2,7 +2,7 @@ import numpy as np
 import os
 import sys
 import tensorflow as tf
-
+import tensorflow.compat.v1 as tf
 
 
 class KmeanModel():
@@ -41,7 +41,7 @@ class KmeanModel():
                 self.sess.run(tf.global_variables_initializer())
                 self.sess.run(self.init_ops, feed_dict={self.X:data})
                 # seems should set iteration correspond to dataset
-                iteration = 5
+                iteration = 20
                 self.first = False
             for i in range(iteration):
                 centroids, y = self.sess.run([self.train_ops, self.y], feed_dict={self.X:data})  

@@ -1,19 +1,16 @@
-# multi-center-fed-learning: to cluster clients with non-IID data
+# Age-based multi-center federated learning
 
 ## Resources
-Please find technical details for this paper: [Multi-center Federated Learning](https://arxiv.org/abs/2005.01026), Robust version for this paper: [Robust Clustered Federated Learning](APWeb-WAIM)
+Please find technical details for the paper [Multi-center Federated Learning](https://arxiv.org/abs/2005.01026) and [Age-Based Scheduling Policy for Federated Learning in Mobile Edge Networks](https://arxiv.org/abs/1910.14648)
 
 
 ## Datasets
-Femnist
-Celeba
-Synthetic
+MNIST: 40 clients, and each clients has only two numbers
 
 ## Notes
 
 - Install the libraries listed in ```requirements.txt```
-    - I.e. with pip: run ```pip3 install -r requirements.txt```
-- Go to directory of respective dataset for instructions on generating data
+    - I.e. with pip: run ```pip install -r requirements.txt```
 - ```models``` directory contains instructions on running baseline reference implementations
 
 ## TODO

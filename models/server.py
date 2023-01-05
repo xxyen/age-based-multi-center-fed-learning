@@ -33,7 +33,7 @@ class Server:
 
         return [(c.num_train_samples, c.num_test_samples) for c in self.selected_clients]
     
-    def train_model(self, single_center, num_epochs=1, batch_size=10, minibatch=None, clients=None, apply_prox=False):
+    def train_model(self, single_center, num_epochs=1, batch_size=10, minibatch=None, clients=None, apply_prox=False, all_clients=None):
         """Trains self.model on given clients.
         
         Trains model on self.selected_clients if clients=None;
@@ -59,6 +59,9 @@ class Server:
             c.id: {BYTES_WRITTEN_KEY: 0,
                    BYTES_READ_KEY: 0,
                    LOCAL_COMPUTATIONS_KEY: 0} for c in clients}
+        #for c in all_clients:
+            #if single_center is None:
+                #c.model.set_params(self.model)
         for c in clients:
             if single_center is not None:
                 c.model.set_params(single_center)

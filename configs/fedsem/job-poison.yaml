@@ -2,9 +2,7 @@
  JOB_ID: "fedem-noniid"
  API_VER: standard
  PARAMS:
-   femnist-num-layers: 6
-   celeba-num-layers: 24
-   synthetic-num-layers: 0 
+   mnist-num-layers: 6
    num-clusters: 5
    update-center-every: 1
    num-rounds: 80

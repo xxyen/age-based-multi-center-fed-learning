@@ -8,6 +8,7 @@ import copy
 
 import random
 import tensorflow as tf
+import tensorflow.compat.v1 as tf
 import logging
 tf.get_logger().setLevel(logging.ERROR)
 
@@ -29,8 +30,6 @@ from baseline_constants import MAIN_PARAMS, MODEL_PARAMS
 from mlhead_client import Client
 from server import Server, MDLpoisonServer
 from model import ServerModel
-from fedprox_optimizer import PerturbedGradientDescent
-from kbmom.utils import loglikelihood, BIC
 from sklearn.metrics import davies_bouldin_score, silhouette_score
 
 
@@ -226,7 +225,6 @@ class Fedsem_Trainer():
                     learned_cluster = self.clustering_function(c_wts)
                     prev_score = len(c_wts)
 
-            #print('--- Round %d of %d: Training %d Clients ---' % (k + 1, num_rounds, clients_per_round))
             print('--- Round %d of %d: Training assigned to %d Cluster ' % (k + 1, num_rounds, 
                                                                             len(learned_cluster)), 
                 "<", count_num_point_from(learned_cluster), "> ---")
@@ -241,7 +239,15 @@ class Fedsem_Trainer():
                 # clients in this group participarte training
                 if clients_per_round != -1: 
                     num = min(clients_per_round, group[0])
-                    active_clients = np.random.choice(group[1], num, replace=False)
+                    group[1].sort(key=lambda x: x.age, reverse=True)
+                    active_clients = group[1][:num]
+                    for i in active_clients:
+                        print(i.age)
+                    for i in group[1]:
+                        if i in active_clients:
+                            i.age = 0
+                        else:
+                            i.age += 1
                 else:
                     active_clients = group[1]
                 
@@ -250,7 +256,8 @@ class Fedsem_Trainer():
                 sys_metrics, updates = server.train_model(self.center_models[c_idx], 
                                                           num_epochs=epochs_per_round, 
                                                           batch_size=batch_size, 
-                                                          clients = active_clients)
+                                                          clients = active_clients,
+                                                         all_clients = group[1])
                 
                 for c, up in zip(active_clients, updates):
                     joined_clients[c.id] = up[1]
@@ -289,22 +296,3 @@ class Fedsem_Trainer():
         save_historyfile()
         print("experiment of Fedsem finished.")
         return
-        # save history file
-        
-        # Save server model        
-#         ckpt_path = os.path.join('checkpoints', args.dataset)
-#         if not os.path.exists(ckpt_path):
-#             os.makedirs(ckpt_path)
-
-#         for i, server in enumerate(self.head_server_stack):
-#             # {}-K{}-C{}, K stands for number of clusters and C stands for ith center
-#             save_path = server.save_model(os.path.join(ckpt_path, '{}-K{}-C{}.ckpt'.format(args.model, args.num_clusters, i+1)))
-#         print('Model saved in path: %s' % save_path)
-#        print('{} rounds kmeans used {:.3f}'.format(self.num_rounds, np.average(self.kmeans_cost, weights=None)))
-#         for i, server in enumerate(self.center_models):
-#             head_weights = server
-#             with open('./{}-C{}.pb'.format(args.model, i), 'wb+') as f:
-#                 pickle.dump(head_weights, f)
-                
-#         for s in self.head_server_stack:
-#             s.close_model()

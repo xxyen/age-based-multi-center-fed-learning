@@ -13,12 +13,6 @@ from mlhead_utilfuncs import save_clustereva_file
 
 from fedsem import Fedsem_Trainer
 from fedavg import Fedavg_Trainer
-from fedprox import Fedprox_Trainer
-from fedsgd import Fedsgd_Trainer
-from fedbayes import Fedbayes_Sing_Trainer
-from fedrobust import Fedrobust_Trainer
-from modelsaver import Model_Saver
-from modelpoison import Model_Poison
 
 def read_yamlconfig(args):
     yaml_file = os.path.join("..", "configs", args.experiment, args.configuration)
@@ -54,10 +48,8 @@ def main():
     config = read_yamlconfig(args)
     
     # changed 29/08/2021 the follow lines are for google cloud dir
-    base_dir =  os.path.join(os.path.expanduser('~'), 'leaf')
-    train_data_dir = os.path.join(base_dir, 'data', args.dataset, 'data', 'train')
-    test_data_dir = os.path.join(base_dir, 'data', args.dataset, 'data', 'test')   
-    users, groups, train_data, test_data = read_data(train_data_dir, test_data_dir)
+    base_dir =  os.path.join(os.path.expanduser('~'), 'autodl-tmp', 'fedsem')
+    users, groups, train_data, test_data = read_data()
     
     exp_seeds, book_keep = config["exp-seeds"], [0.] * len(config["exp-seeds"])
     metrics_list = {"bic": [], "db_score": []}
@@ -68,51 +60,11 @@ def main():
         if args.experiment == 'fedavg':
             trainer = Fedavg_Trainer(users, groups, train_data, test_data)
             metric = trainer.begins(config, args)
-            trainer.ends()
-        elif args.experiment == 'fedprox':
-            trainer = Fedprox_Trainer(users, groups, train_data, test_data)
-            metric = trainer.begins(config, args)
-            trainer.ends()
-        elif args.experiment == 'fedrobust':
-            trainer = Fedrobust_Trainer(users, groups, train_data, test_data)
-            metric = trainer.begins(config, args)
-            trainer.ends()            
-        elif args.experiment == 'fedcluster':
-            pass
-        elif args.experiment == 'fedsgd':
-            trainer = Fedsgd_Trainer(users, groups, train_data, test_data)
-            metric =trainer.begins(config, args)
-            trainer.ends()            
-        elif args.experiment == 'fedbayes':
-            trainer = Fedbayes_Sing_Trainer(users, groups, train_data, test_data)
-            metric =trainer.begins(config, args)
-            trainer.ends()
-        elif args.experiment == 'modelsaver':
-            trainer = Model_Saver(users, groups, train_data, test_data)
-            metric = trainer.begins(config, args)
-            trainer.ends()        
+            trainer.ends()       
         elif args.experiment == 'fedsem':
             trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
             metric = trainer.begins(config, args)
             trainer.ends() 
-        elif args.experiment == 'fedpoison':
-            trainer = Model_Poison(users, groups, train_data, test_data) 
-            metric = trainer.begins(config, args)
-            trainer.ends()
-        elif args.experiment == 'fedrobust_benchmark':
-            config["benchmark"] = 1
-            trainer = Fedrobust_Trainer(users, groups, train_data, test_data)
-            metric = trainer.begins(config, args)
-            trainer.ends()
-            metrics_list["bic"].append(trainer._bic)
-            metrics_list["db_score"].append(trainer._db_score)
-        elif args.experiment == 'fedsem_benchmark':
-            config["benchmark"] = 1
-            trainer = Fedsem_Trainer(users, groups, train_data, test_data) 
-            metric = trainer.begins(config, args)
-            trainer.ends() 
-            metrics_list["bic"].append(trainer._bic)
-            metrics_list["db_score"].append(trainer._db_score)
         else:
             print("Applications not defined. Please check configs directory if the name is right.")
             break
@@ -124,7 +76,5 @@ def main():
     if args.experiment in ["fedrobust_benchmark", "fedsem_benchmark"]:
         df = pd.DataFrame(metrics_list)
         save_clustereva_file(args.experiment, df)
-#     print("{} runs - std: {}, med: {}".format(len(exp_seeds), 
-#                                               np.var(finals),
-#                                              np.median(finals)))        
+        
 main()
